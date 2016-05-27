@@ -10,7 +10,7 @@ public class Tile {
 	private int armor;
 	private Color color;
 	
-	Tile(int armor, Color color) {
+	public Tile(int armor, Color color) {
 		this.armor = armor;
 		this.color = color;
 	}

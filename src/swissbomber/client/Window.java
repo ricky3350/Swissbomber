@@ -1,4 +1,4 @@
-package swissbomber;
+package swissbomber.client;
 
 import javax.swing.JFrame;
 

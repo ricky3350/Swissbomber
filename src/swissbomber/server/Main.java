@@ -1,10 +1,14 @@
-package swissbomber;
+package swissbomber.server;
 
 import java.awt.Color;
 
+import swissbomber.Tile;
+
 public class Main {
 	
-	public static void main(String[] args) {	
+	public static void main(String[] args) {
+		
+		
 		Tile w = new Tile(-1, Color.GRAY);
 		Tile c = new Tile(1, new Color(180, 160, 90));
 		Tile n = null;
@@ -26,8 +30,7 @@ public class Main {
 			{w,w,w,w,w,w,w,w,w,w,w,w,w}
 		};
 
-		Bomb.loadAnimations();
-		new Window(new Game(grid, 2));
+		new Game(grid, 2);
 	}
 	
 }

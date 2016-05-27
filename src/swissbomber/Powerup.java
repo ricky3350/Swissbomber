@@ -4,7 +4,7 @@ import java.awt.Color;
 
 public class Powerup extends Tile {
 
-	static final Powerup[] POWERUPS = {
+	public static final Powerup[] POWERUPS = {
 			new Powerup(1, Color.RED, 10, "power+"),
 			new Powerup(1, Color.GREEN, 10, "speed+"),
 			new Powerup(1, Color.BLUE, 10, "bombs+"),

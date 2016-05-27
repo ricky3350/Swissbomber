@@ -1,83 +1,61 @@
-package swissbomber;
+package swissbomber.server;
 
 import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
 
-import javax.imageio.ImageIO;
+import swissbomber.Powerup;
+import swissbomber.Tile;
 
 public class Bomb extends Tile {
 
-	private static BufferedImage[] animations = new BufferedImage[100];
-	
+	public final long TIMER_START;
+
 	private int x, y;
 	private Character owner;
 	private long timer;
-	public final long TIMER_START;
 	private boolean hasExploded = false;
-	
+
 	private int power;
 	private boolean piercing, remote, remoteActivated = false;
-	
+
 	private int[] explosionSize = new int[4]; // Extends up, down, left, right
-	
-	static void loadAnimations() {
-		for (int i = 1; i <= 100; i++) {
-			try {
-				animations[i - 1] = ImageIO.read(new File("bomb/" + String.format("%04d", i) + ".png"));
-			} catch (IOException | NullPointerException e) {
-				System.out.println("Error: Failed loading bomb animation image " + i);
-				e.printStackTrace();
-			}
-		}
-	}
-	
-	public BufferedImage getAnimation() {
-		if (Math.round(100f * timer / TIMER_START) <= 0) return animations[100];
-		return animations[100 - Math.round(100f * timer / TIMER_START)];
-	}
-	
+
 	Bomb(int x, int y, int armor, Color color, Character owner, int power, boolean piercing, boolean remote) {
 		super(armor, color);
-		
+
 		this.x = x;
 		this.y = y;
 		this.owner = owner;
 		this.power = power;
 		this.piercing = piercing;
 		this.remote = remote;
-		
-		if (!remote)
-			TIMER_START = 3000000000l;
-		else
-			TIMER_START = 750000000l;
+
+		TIMER_START = remote ? 750000000L : 3000000000L;
 		timer = TIMER_START;
 	}
 
 	public int getX() {
 		return x;
 	}
-	
+
 	public int getY() {
 		return y;
 	}
-	
+
 	public Color getColor() {
 		if (!hasExploded)
-			return new Color((int) Math.round((1 - timer / (double)TIMER_START) * 100), 0, 0);
+			return Color.BLACK;//new Color((int) Math.round((1 - timer / (double)TIMER_START) * 100), 0, 0);
 		else
 			return new Color((int) Math.round((1 - timer / -1000000000d) * 200), 0, 0, (int) Math.round((1 - timer / -1000000000d) * 255));
 	}
-	
+
 	public boolean hasExploded() {
 		return hasExploded;
 	}
-	
+
 	public int[] getExplosionSize() {
 		return explosionSize;
 	}
-	
+
 	public boolean step(Game game, long deltaTime) {
 		if (!remote || remoteActivated)
 			timer -= deltaTime;
@@ -85,7 +63,7 @@ public class Bomb extends Tile {
 			return true;
 		} else if (timer <= 0 && !hasExploded) {
 			Tile[][] map = game.getMap();
-			
+
 			for (int x = 0; x < map.length; x++) {
 				for (int y = 0; y < map[x].length; y++) {
 					if (map[x][y] == this) {
@@ -93,12 +71,12 @@ public class Bomb extends Tile {
 					}
 				}
 			}
-			
+
 			explosionSize[0] = y;
 			explosionSize[1] = y;
 			explosionSize[2] = x;
 			explosionSize[3] = x;
-			
+
 			destroy(game, x, y);
 			int[][] explodeDirections = { {0, 1}, {1, 0}, {0, -1}, {-1, 0} };
 			for (int d = 0; d < explodeDirections.length; d++) {
@@ -119,13 +97,13 @@ public class Bomb extends Tile {
 					}
 				}
 			}
-			
+
 			owner.addBomb();
 			hasExploded = true;
 		}
 		return false;
 	}
-	
+
 	private int destroy(Game game, int x, int y) {
 		for (Character character : game.getCharacters()) {
 			if (character.collidesWithTile(x, y)) {
@@ -135,7 +113,7 @@ public class Bomb extends Tile {
 				character.kill();
 			}
 		}
-		
+
 		Tile tile = game.getMap()[x][y];
 		if (tile != null) {
 			if (tile instanceof Bomb) {
@@ -145,27 +123,27 @@ public class Bomb extends Tile {
 				game.getMap()[x][y] = null;
 			} else {
 				if (power >= tile.getArmor() && tile.getArmor() > 0) { // TODO: Better armor mechanics
-			    	if (Math.random() >= 0.75) {
-			    		game.getMap()[x][y] = Tile.SURGE;
-			    	} else {
-			    		game.getMap()[x][y] = Tile.ASH;
-			    	}
+					if (Math.random() >= 0.75) {
+						game.getMap()[x][y] = Tile.SURGE;
+					} else {
+						game.getMap()[x][y] = Tile.ASH;
+					}
 					return 0; // Tile hit and destroyed
 				}
 				if (tile.getArmor() == 0 && piercing) return 0; // Do not stop at (but also do not destroy) temporary indestructibles if the bomb is piercing
 				return 1; // Tile hit and not destroyed
 			}
 		}
-		
+
 		return -1; // No tiles hit
 	}
-	
+
 	public void explode(Game game) {
 		if (remote && !remoteActivated)
 			owner.detonateRemoteBomb(this);	
 		step(game, timer);
 	}
-	
+
 	public void detonate() {
 		remoteActivated = true;
 	}
