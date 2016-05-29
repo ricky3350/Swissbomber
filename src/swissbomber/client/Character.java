@@ -182,11 +182,11 @@ public class Character {
 	}
 
 	public boolean collidesWithPowerup(int x, int y, Powerup powerup) {
-		return Math.sqrt(Math.pow(positionX - (x + 0.5f), 2) + Math.pow(positionY - (y + 0.5f), 2)) <= radius + powerup.RADIUS;
+		return Math.sqrt(Math.pow(positionX - (x + 0.5f), 2) + Math.pow(positionY - (y + 0.5f), 2)) <= radius + powerup.radius;
 	}
 
 	public void activatePowerup(Powerup powerup) {
-		switch (powerup.EFFECT) {
+		switch (powerup.effect) {
 			case "power+":
 				if (bombPower < 9) bombPower++;
 				break;
@@ -209,7 +209,7 @@ public class Character {
 				kicks = true;
 				break;
 			default:
-				System.out.println("Error: Undefined powerup \"" + powerup.EFFECT + "\"");
+				System.out.println("Error: Undefined powerup \"" + powerup.effect + "\"");
 				break;
 		}
 	}

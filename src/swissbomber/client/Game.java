@@ -18,6 +18,7 @@ import javax.swing.JPanel;
 
 import swissbomber.Powerup;
 import swissbomber.Tile;
+import swissbomber.server.FuturePowerup;
 
 public class Game extends JPanel {
 
@@ -108,25 +109,17 @@ public class Game extends JPanel {
 					gg.setColor(map[x][y].getColor());
 					if (map[x][y] instanceof Bomb) {
 						gg.drawImage(((Bomb) map[x][y]).getAnimation(), x * TILE_LENGTH, y * TILE_LENGTH, TILE_LENGTH, TILE_LENGTH, null);
-						// gg.fillOval(x * tileLength + Math.round(tileLength * 0.05f), y * tileLength + Math.round(tileLength * 0.05f), Math.round(tileLength * 0.9f), Math.round(tileLength * 0.9f));
 					} else if (map[x][y] instanceof Powerup) {
-						gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).RADIUS)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).RADIUS)), Math.round(((Powerup) map[x][y]).RADIUS * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).RADIUS * 2 * TILE_LENGTH));
+						gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH));
 					} else {
 						if (map[x][y].getArmor() == 0) {
 							if (map[x][y].getColor() == null) {
 								map[x][y] = null;
 								continue;
-							} else if (map[x][y].getColor() == Color.CYAN) {
-								int value = (int) (Math.random() * Powerup.getTotalRarity());
-								for (Powerup powerup : Powerup.POWERUPS) {
-									value -= powerup.RARITY;
-									if (value < 0) {
-										map[x][y] = powerup;
-										break;
-									}
-								}
+							} else if (map[x][y] instanceof FuturePowerup) {
+								map[x][y] = ((FuturePowerup) map[x][y]).character.nextPowerup();
 								gg.setColor(map[x][y].getColor());
-								gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).RADIUS)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).RADIUS)), Math.round(((Powerup) map[x][y]).RADIUS * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).RADIUS * 2 * TILE_LENGTH));
+								gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH));
 								continue;
 							}
 						}

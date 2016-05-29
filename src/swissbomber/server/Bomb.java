@@ -124,7 +124,7 @@ public class Bomb extends Tile {
 			} else {
 				if (power >= tile.getArmor() && tile.getArmor() > 0) { // TODO: Better armor mechanics
 					if (Math.random() >= 0.75) {
-						game.getMap()[x][y] = Tile.SURGE;
+						game.getMap()[x][y] = new FuturePowerup(this.owner);
 					} else {
 						game.getMap()[x][y] = Tile.ASH;
 					}
