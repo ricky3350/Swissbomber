@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.Vector;
 
 import javax.swing.BoxLayout;
@@ -51,12 +52,17 @@ public class Network {
 		Vector<String> prevAddresses = new Vector<>();
 		if (Files.notExists(path, LinkOption.NOFOLLOW_LINKS)) {
 			try {
+				Files.createDirectories(Paths.get("client/settings"));
 				Files.createFile(path);
-			} catch (IOException e) {}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		} else {
 			try {
 				prevAddresses.addAll(Files.readAllLines(path));
-			} catch (IOException e) {}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 
 		JPanel panel = new JPanel();
@@ -79,6 +85,8 @@ public class Network {
 			}
 		});
 		panel.add(new JScrollPane(addresses), 0);
+
+		String a;
 		while (true) {
 			if (JOptionPane.showOptionDialog(null, panel, "Connect", JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE, null, new String[] {"Connect", "Cancel"}, "Connect") != 0) return false;
 
@@ -91,7 +99,10 @@ public class Network {
 			}
 
 			try {
+				a = String.format("%s:%d", parts[0], port);
 				socket = new Socket(parts[0], port);
+				out = new ObjectOutputStream(socket.getOutputStream());
+				in = new ObjectInputStream(socket.getInputStream());
 				break;
 			} catch (IOException e) {
 				JOptionPane.showMessageDialog(null, "Failed to connect to " + parts[0] + ":" + port, "Connection Failed", JOptionPane.ERROR_MESSAGE);
@@ -99,6 +110,10 @@ public class Network {
 			}
 		}
 
+		try {
+			prevAddresses.add(a);
+			Files.write(path, new TreeSet<>(prevAddresses));
+		} catch (IOException e) {}
 		return true;
 	}
 
@@ -140,7 +155,7 @@ public class Network {
 					game.map[input[1]][input[2]] = null;
 					break;
 				case 6:
-					game.map[input[1]][input[2]] = new Tile(input[3], new Color(input[4]));
+					game.map[input[3]][input[4]] = new Tile(input[1], new Color(input[2]));
 					break;
 				case -1:
 					throw new IOException();

@@ -27,7 +27,7 @@ public class Game extends JPanel {
 	List<Character> characters = new ArrayList<>();
 	List<Controller> controllers = new ArrayList<>();
 	List<Bomb> bombs = new ArrayList<>();
-	Tile[][] map = new Tile[13][15];
+	Tile[][] map = new Tile[15][13];
 
 	private int currentFPS = 0;
 	private int targetFPS = 60;
@@ -36,24 +36,35 @@ public class Game extends JPanel {
 	public int playerCount;
 	public List<Color> colors = new ArrayList<>();
 	public List<Point2D> positions = new ArrayList<>();
-	
+
 	Game() throws IOException {
-		int[] controls = {KeyEvent.VK_W, KeyEvent.VK_S, KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_SPACE, KeyEvent.VK_SHIFT};
-		Network.startingConfig(this);
-		for (int i = 0; i < playerCount; i++) {
-			Point2D pt = positions.get(i);
-			Character newCharacter = new Character((float) pt.getX(), (float) pt.getY(), colors.get(i));
-			characters.add(newCharacter);
-		}
-		InputController newInputController = new InputController(characters.get(0), controls);
-		controllers.add(newInputController);
-		addKeyListener(newInputController);
+		new Thread(new Runnable() {
+			
+			@Override
+			public void run() {
+				int[] controls = {KeyEvent.VK_W, KeyEvent.VK_S, KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_SPACE, KeyEvent.VK_SHIFT};
+				try {
+					Network.startingConfig(Game.this);
+				} catch (IOException e) {
+					System.exit(0);
+				}
+				for (int i = 0; i < playerCount; i++) {
+					Point2D pt = positions.get(i);
+					Character newCharacter = new Character((float) pt.getX(), (float) pt.getY(), colors.get(i));
+					characters.add(newCharacter);
+				}
+				InputController newInputController = new InputController(characters.get(0), controls);
+				controllers.add(newInputController);
+				addKeyListener(newInputController);
+
+				repaint();
+				new Thread(loop(Game.this)).start();
+			}
+		}).start();
 		
 		setPreferredSize(new Dimension(map.length * TILE_LENGTH + 200, map[0].length * TILE_LENGTH));
 		setFocusable(true);
 		requestFocusInWindow();
-
-		new Thread(loop(this)).start();
 	}
 
 	public List<Character> getCharacters() {

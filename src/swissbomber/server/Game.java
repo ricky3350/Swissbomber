@@ -1,6 +1,7 @@
 package swissbomber.server;
 
 import java.awt.Color;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,10 +21,39 @@ public class Game {
 		Color[] colors = {Color.BLUE, Color.GREEN, Color.ORANGE, Color.MAGENTA};
 		float[][] positions = {{1.5f, 1.5f}, {13.5f, 11.5f}, {13.5f, 1.5f}, {1.5f, 11.5f}};
 		for (int i = 0; i < playerCount; i++) {
-			Character newCharacter = new Character(positions[i][0], positions[i][1], colors[i]);
-			characters.add(newCharacter);
+			try {
+				Character character = new Character(positions[i][0], positions[i][1], colors[i]);
+
+				ServerController controller = Network.getNewPlayer(character, i, playerCount);
+
+				controller.write(131, Network.VERSION);
+				controller.write(129, playerCount);
+				for (int n = 0; n < playerCount; n++) {
+					controller.write(130, controller.indices[n], colors[n].getRGB());
+					controller.write(0, controller.indices[n], Float.floatToIntBits(positions[n][0]), Float.floatToIntBits(positions[n][1]));
+				}
+				for (int x = 0; x < map.length; x++) {
+					for (int y = 0; y < map[x].length; y++) {
+						if (map[x][y] == null) {
+							controller.write(1, x, y);
+						} else {
+							controller.write(6, map[x][y].getArmor(), map[x][y].getColor().getRGB(), x, y);
+						}
+					}
+				}
+
+				controllers.add(controller);
+				characters.add(character);
+			} catch (IOException e) {
+				i--;
+			}
 		}
 
+		for (Controller c : controllers) {
+			if (!(c instanceof ServerController)) continue;
+			((ServerController) c).start();
+		}
+		
 		new Thread(loop(this)).start();
 	}
 

@@ -12,6 +12,8 @@ import java.util.List;
 
 public class Network {
 
+	public static final int VERSION = 0;
+
 	protected static ServerSocket socket;
 	protected static ObjectInputStream in;
 	protected static ObjectOutputStream out;
@@ -19,7 +21,8 @@ public class Network {
 	private Network() {}
 
 	public static void openServer() throws IOException {
-		Path path = Paths.get("settings/server/ip.cgf");
+		Files.createDirectories(Paths.get("server/settings"));
+		Path path = Paths.get("server/settings/ip.cfg");
 
 		String address = null;
 		int port = -1;
@@ -47,6 +50,10 @@ public class Network {
 			port = 11432;
 		}
 
+		try {
+			Files.write(path, String.format("address=%s\nport=%d", address, port).getBytes());
+		} catch (IOException e) {}
+
 		socket = new ServerSocket();
 		try {
 			Log.print("Binding to " + address + ":" + port + "...");
@@ -58,13 +65,16 @@ public class Network {
 		}
 	}
 
-	public ServerController getNewPlayer(Character ch) throws IOException {
+	public static ServerController getNewPlayer(Character ch, int index, int numPlayers) throws IOException {
 		try {
-			ServerController ret = new ServerController(socket.accept(), ch);
+			int[] indices = new int[numPlayers];
+			for (int n = 0; n < numPlayers; n++)
+				indices[n] = n == index ? 0 : (n < index ? n + 1 : n);
+			ServerController ret = new ServerController(socket.accept(), ch, indices);
 			Log.print("Accepted player at " + ret.socket.getInetAddress().getHostAddress());
 			return ret;
 		} catch (IOException e) {
-			Log.print("WARN", "Could not create player controller.");
+			Log.print("ERROR", "Could not create player controller.");
 			throw e;
 		}
 	}

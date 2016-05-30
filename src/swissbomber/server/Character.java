@@ -187,14 +187,14 @@ public class Character {
 	}
 
 	private ArrayDeque<Powerup> nextPowerups = new ArrayDeque<>();
-	
+
 	public Powerup nextPowerup() {
 		if (nextPowerups.isEmpty()) {
 			nextPowerups.addAll(Powerup.randomPowerupOrder());
 		}
 		return nextPowerups.pop();
 	}
-	
+
 	public void activatePowerup(Powerup powerup) {
 		switch (powerup.effect) {
 			case "power+":
@@ -219,7 +219,7 @@ public class Character {
 				kicks = true;
 				break;
 			default:
-				System.out.println("Error: Undefined powerup \"" + powerup.effect + "\"");
+				Log.print("ERROR", "Undefined powerup \"" + powerup.effect + "\"");
 				break;
 		}
 	}

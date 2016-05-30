@@ -11,16 +11,30 @@ public class ServerController implements Controller {
 	private boolean[] keyPressed = new boolean[6];
 	private boolean[] isHeld = new boolean[2];
 
+	protected final int[] indices;
+	protected final int index;
+
 	protected final Socket socket;
 	private final ObjectInputStream in;
 	private final ObjectOutputStream out;
 
-	public ServerController(Socket socket, Character character) throws IOException {
+	public ServerController(Socket socket, Character character, int[] indices) throws IOException {
 		this.socket = socket;
 		this.in = new ObjectInputStream(this.socket.getInputStream());
 		this.out = new ObjectOutputStream(this.socket.getOutputStream());
 
 		this.character = character;
+
+		this.indices = indices;
+		int i = -1;
+		for (int n = 0; n < indices.length; n++) {
+			if (indices[n] == 0) {
+				i = n;
+				break;
+			}
+		}
+		if (i < 0) throw new IllegalArgumentException();
+		this.index = i;
 	}
 
 	@Override
@@ -67,27 +81,44 @@ public class ServerController implements Controller {
 		if (key < 0 || key >= keyPressed.length) {
 			keyPressed[key] = down;
 			if (!down && key >= 4) isHeld[key - 4] = false;
+			Log.print("PLAYER" + index, (down ? "Pressed" : "Released") + " key " + key);
 		}
 	}
 
-//	@Override
-//	public void keyPressed(KeyEvent e) {
-//		for (int i = 0; i < keyCodes.length; i++) {
-//			if (e.getKeyCode() == keyCodes[i]) {
-//				keyPressed[i] = true;
-//			}
-//		}
-//	}
-//
-//	@Override
-//	public void keyReleased(KeyEvent e) {
-//		for (int i = 0; i < keyCodes.length; i++) {
-//			if (e.getKeyCode() == keyCodes[i]) {
-//				keyPressed[i] = false;
-//				if (i >= 4)
-//					isHeld[i - 4] = false;
-//			}
-//		}
-//	}
+	public void write(int cmd, int... args) throws IOException {
+		out.writeInt(cmd);
+		for (int arg : args) {
+			out.writeInt(arg);
+		}
+		out.flush();
+		String s = cmd + "";
+		for (int i : args)
+			s += ", " + i;
+		Log.print("SERVER -> PLAYER" + index, s);
+	}
+
+	public void start() {
+		new Thread(new Runnable() {
+
+			@Override
+			public void run() {
+				try {
+					write(128);
+				} catch (IOException e) {
+					character.kill();
+					return;
+				}
+				
+				while (true) {
+					try {
+						read();
+					} catch (IOException e) {
+						character.kill();
+						break;
+					}
+				}
+			}
+		}).start();
+	}
 
 }

@@ -27,7 +27,7 @@ public class Log {
 	public static void print(String s) {
 		print("INFO", s);
 	}
-	
+
 	public static void print(String sender, Object obj) {
 		print(obj.toString());
 	}
