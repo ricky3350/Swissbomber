@@ -15,7 +15,7 @@ public class Character {
 	private Color color;
 
 	private int bombPower = 1;
-	private float speed = 5; // Tiles per second
+	private int speed = 5; // Tiles per second
 	private int maxBombs = 1, currentBombs = maxBombs;
 	private boolean piercingBombs = false;
 	private boolean remoteBombs = false;
@@ -37,7 +37,9 @@ public class Character {
 	}
 
 	public void kill() {
+		boolean wasAlive = alive;
 		alive = false;
+		if (wasAlive) Network.notifyDead(this);
 	}
 
 	public float getX() {
@@ -72,7 +74,7 @@ public class Character {
 		currentBombs = Math.min(maxBombs, currentBombs + 1);
 	}
 
-	public float getSpeed() {
+	public int getSpeed() {
 		return speed;
 	}
 
@@ -112,29 +114,29 @@ public class Character {
 		tempUncollidableTiles.add(tile);
 	}
 
-	public void move(Game game, double angle, long deltaTime) {
+	public void move(double angle, long deltaTime) {
 		if (!alive) return;
 
-		double distance = speed / 1000000000 * deltaTime;
+		double distance = speed / 1000000000D * deltaTime;
 		positionX += Math.cos(Math.toRadians(angle)) * distance;
 		positionY -= Math.sin(Math.toRadians(angle)) * distance;
 
 		int[][] collidableTiles = {{0, 0}, {-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
 
 		collidableTiles: for (int[] collidableTile : collidableTiles) {
-			if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] != null) {
-				if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] instanceof Powerup) {
-					if (collidesWithPowerup((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]), (Powerup) game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])])) {
-						activatePowerup((Powerup) game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
-						game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] = null;
+			if (Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] != null) {
+				if (Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] instanceof Powerup) {
+					if (collidesWithPowerup((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]), (Powerup) Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])])) {
+						activatePowerup((Powerup) Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
+						Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] = null;
 					}
 					continue;
 				}
 
 				for (Tile tile : tempUncollidableTiles) {
-					if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] == tile) {
+					if (Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] == tile) {
 						if (!collidesWithTile((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]))) {
-							tempUncollidableTiles.remove(game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
+							tempUncollidableTiles.remove(Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
 						}
 						continue collidableTiles;
 					}
@@ -190,7 +192,10 @@ public class Character {
 
 	public Powerup nextPowerup() {
 		if (nextPowerups.isEmpty()) {
-			nextPowerups.addAll(Powerup.randomPowerupOrder());
+			List<Powerup> pps = Powerup.randomPowerupOrder();
+			Log.print("DEBUG", pps.toString());
+			Log.print("DEBUG", nextPowerups.toString());
+			nextPowerups.addAll(pps);
 		}
 		return nextPowerups.pop();
 	}

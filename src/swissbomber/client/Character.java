@@ -13,13 +13,13 @@ public class Character {
 	private float positionX, positionY;
 	private Color color;
 
-	private int bombPower = 1;
-	private float speed = 5; // Tiles per second
-	private int maxBombs = 1, currentBombs = maxBombs;
-	private boolean piercingBombs = false;
-	private boolean remoteBombs = false;
+	int bombPower = 1;
+	float speed = 5; // Tiles per second
+	int maxBombs = 1, currentBombs = maxBombs;
+	boolean piercingBombs = false;
+	boolean remoteBombs = false;
 	private List<Bomb> activeRemoteBombs = new ArrayList<>();
-	private boolean kicks = false;
+	boolean kicks = false;
 
 	private float radius = 0.4f;
 
@@ -61,14 +61,6 @@ public class Character {
 
 	public int getMaxBombs() {
 		return maxBombs;
-	}
-
-	public void removeBomb() {
-		currentBombs = Math.max(0, currentBombs - 1);
-	}
-
-	public void addBomb() {
-		currentBombs = Math.min(maxBombs, currentBombs + 1);
 	}
 
 	public float getSpeed() {
@@ -122,14 +114,6 @@ public class Character {
 
 		collidableTiles: for (int[] collidableTile : collidableTiles) {
 			if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] != null) {
-				if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] instanceof Powerup) {
-					if (collidesWithPowerup((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]), (Powerup) game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])])) {
-						activatePowerup((Powerup) game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
-						game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] = null;
-					}
-					continue;
-				}
-
 				for (Tile tile : tempUncollidableTiles) {
 					if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] == tile) {
 						if (!collidesWithTile((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]))) {
@@ -163,6 +147,11 @@ public class Character {
 			}
 		}
 	}
+	
+	public void setPosition(float x, float y) {
+		this.positionX = x;
+		this.positionY = y;
+	}
 
 	private float properPosition(float position, float tile) {
 		return tile + (position > tile ? 1 : -1) * (radius + 0.5f);
@@ -185,32 +174,4 @@ public class Character {
 		return Math.sqrt(Math.pow(positionX - (x + 0.5f), 2) + Math.pow(positionY - (y + 0.5f), 2)) <= radius + powerup.radius;
 	}
 
-	public void activatePowerup(Powerup powerup) {
-		switch (powerup.effect) {
-			case "power+":
-				if (bombPower < 9) bombPower++;
-				break;
-			case "speed+":
-				if (speed < 9) speed++;
-				break;
-			case "bombs+":
-				if (maxBombs < 9) {
-					currentBombs++;
-					maxBombs++;
-				}
-				break;
-			case "pierce":
-				piercingBombs = true;
-				break;
-			case "remote":
-				remoteBombs = true;
-				break;
-			case "kick":
-				kicks = true;
-				break;
-			default:
-				System.out.println("Error: Undefined powerup \"" + powerup.effect + "\"");
-				break;
-		}
-	}
 }

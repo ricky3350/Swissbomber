@@ -18,14 +18,13 @@ import javax.swing.JPanel;
 
 import swissbomber.Powerup;
 import swissbomber.Tile;
-import swissbomber.server.FuturePowerup;
 
 public class Game extends JPanel {
 
 	private static final long serialVersionUID = -7101890057819507949L;
 
 	List<Character> characters = new ArrayList<>();
-	List<Controller> controllers = new ArrayList<>();
+	Controller controller;
 	List<Bomb> bombs = new ArrayList<>();
 	Tile[][] map = new Tile[15][13];
 
@@ -39,7 +38,7 @@ public class Game extends JPanel {
 
 	Game() throws IOException {
 		new Thread(new Runnable() {
-			
+
 			@Override
 			public void run() {
 				int[] controls = {KeyEvent.VK_W, KeyEvent.VK_S, KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_SPACE, KeyEvent.VK_SHIFT};
@@ -53,15 +52,16 @@ public class Game extends JPanel {
 					Character newCharacter = new Character((float) pt.getX(), (float) pt.getY(), colors.get(i));
 					characters.add(newCharacter);
 				}
-				InputController newInputController = new InputController(characters.get(0), controls);
-				controllers.add(newInputController);
-				addKeyListener(newInputController);
+				controller = new InputController(characters.get(0), controls);
+				addKeyListener((InputController) controller);
 
 				repaint();
 				new Thread(loop(Game.this)).start();
+				new Thread(networkLoop(Game.this)).start();
 			}
+
 		}).start();
-		
+
 		setPreferredSize(new Dimension(map.length * TILE_LENGTH + 200, map[0].length * TILE_LENGTH));
 		setFocusable(true);
 		requestFocusInWindow();
@@ -69,10 +69,6 @@ public class Game extends JPanel {
 
 	public List<Character> getCharacters() {
 		return characters;
-	}
-
-	public List<Controller> getControllers() {
-		return controllers;
 	}
 
 	public Tile[][] getMap() {
@@ -91,19 +87,14 @@ public class Game extends JPanel {
 		return TILE_LENGTH;
 	}
 
-	boolean placeBomb(int x, int y, Character owner) {
-		if (map[x][y] == null) {
-			map[x][y] = new Bomb(x, y, 1, Color.BLACK, owner, owner.getBombPower(), owner.hasPiercingBombs(), owner.hasRemoteBombs());
-			bombs.add((Bomb) map[x][y]);
-			if (owner.hasRemoteBombs()) owner.addRemoteBomb((Bomb) map[x][y]);
-			for (Character character : characters) {
-				if (character.collidesWithTile(x, y)) {
-					character.addTempUncollidableTile(map[x][y]);
-				}
+	void placeBomb(int x, int y, int charIndex, int power, boolean piercing, boolean remote) {
+		map[x][y] = new Bomb(x, y, 1, Color.BLACK, characters.get(charIndex), power, piercing, remote);
+		bombs.add((Bomb) map[x][y]);
+		for (Character character : characters) {
+			if (character.collidesWithTile(x, y)) {
+				character.addTempUncollidableTile(map[x][y]);
 			}
-			return true;
 		}
-		return false;
 	}
 
 	@Override
@@ -123,17 +114,6 @@ public class Game extends JPanel {
 					} else if (map[x][y] instanceof Powerup) {
 						gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH));
 					} else {
-						if (map[x][y].getArmor() == 0) {
-							if (map[x][y].getColor() == null) {
-								map[x][y] = null;
-								continue;
-							} else if (map[x][y] instanceof FuturePowerup) {
-								map[x][y] = ((FuturePowerup) map[x][y]).character.nextPowerup();
-								gg.setColor(map[x][y].getColor());
-								gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH));
-								continue;
-							}
-						}
 						gg.fillRect(x * TILE_LENGTH, y * TILE_LENGTH, TILE_LENGTH, TILE_LENGTH);
 					}
 				}
@@ -200,7 +180,63 @@ public class Game extends JPanel {
 		}
 	}
 
-	private Runnable loop(Game game) {
+	private static Runnable networkLoop(Game game) {
+		return new Runnable() {
+
+			@Override
+			public void run() {
+				while (true) {
+					try {
+						int[] input = Network.read();
+
+						if (input[0] == 0) {
+							game.characters.get(input[1]).setPosition(Float.intBitsToFloat(input[2]), Float.intBitsToFloat(input[3]));
+						} else if (input[0] == 1) {
+							game.map[input[1]][input[2]] = null;
+						} else if (input[0] == 2) {
+							Tile bomb = game.map[input[2]][input[3]];
+							if (bomb instanceof Bomb) {
+								((Bomb) bomb).setTimer(input[1]);
+							}
+						} else if (input[0] == 3) {
+							game.map[input[2]][input[3]] = Powerup.POWERUPS[input[1]];
+						} else if (input[0] == 4) {
+							Character c = game.characters.get(input[1]);
+							switch (input[2]) {
+								case 0:
+									c.bombPower = input[3];
+									break;
+								case 1:
+									c.speed = input[3];
+									break;
+								case 2:
+									c.maxBombs = input[3];
+									break;
+								case 3:
+									c.piercingBombs = input[3] != 0;
+									break;
+								case 4:
+									c.remoteBombs = input[3] != 0;
+									break;
+							}
+						} else if (input[0] == 5) {
+							game.characters.get(input[1]).kill();
+						} else if (input[0] == 6) {
+							game.map[input[3]][input[4]] = new Tile(input[1], new Color(input[2]));
+						} else if (input[0] == 7) {
+							game.placeBomb(input[5], input[6], input[1], input[2], input[3] != 0, input[4] != 0);
+						} else if (input[0] == 8) {
+							game.characters.get(input[1]).currentBombs = input[2];
+						}
+					} catch (IOException e) {
+						System.exit(0);
+					}
+				}
+			}
+		};
+	}
+
+	private static Runnable loop(Game game) {
 		return new Runnable() {
 
 			@Override
@@ -232,15 +268,10 @@ public class Game extends JPanel {
 	}
 
 	private void update(long deltaTime) {
-		for (Controller controller : controllers) {
-			controller.step(this, deltaTime);
-		}
+		controller.step(this, deltaTime);
 
-		for (int i = 0; i < bombs.size(); i++) {
-			if (bombs.get(i).step(this, deltaTime)) {
-				bombs.remove(bombs.get(i));
-				i--;
-			}
+		for (Bomb bomb : bombs) {
+			bomb.step(this, deltaTime);
 		}
 
 		repaint();

@@ -166,6 +166,8 @@ public class Network {
 	public static int[] read() throws IOException {
 		int cmd = in.readInt();
 
+		System.out.println(cmd);
+		
 		List<Integer> ret = new ArrayList<>();
 		ret.add(cmd);
 
@@ -173,7 +175,15 @@ public class Network {
 		for (int n = 0; n < i; n++)
 			ret.add(in.readInt());
 
+		System.out.println(ret);
+		
 		return ret.stream().mapToInt(n -> n).toArray();
+	}
+	
+	public static void writeKey(int key, boolean pressed) throws IOException {
+		out.writeInt(key);
+		out.writeBoolean(pressed);
+		out.flush();
 	}
 
 	public static int getNumArgs(int cmd) {
@@ -186,6 +196,7 @@ public class Network {
 			case 131:
 				return 1;
 			case 1:
+			case 8:
 			case 130:
 				return 2;
 			case 0:
@@ -195,8 +206,13 @@ public class Network {
 				return 3;
 			case 6:
 				return 4;
+			case 7:
+			case 9:
+				return 6;
+			case 10:
+				return 11;
 			default:
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("for command " + cmd);
 		}
 	}
 

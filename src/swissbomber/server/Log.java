@@ -16,7 +16,22 @@ public class Log {
 
 	private static PrintStream file;
 
+	/**
+	 * <ul>
+	 * <b><i>initFile</i></b><br>
+	 * <br>
+	 * <code>&nbsp;public static void initFile({@link Path} path) throws IOException</code><br>
+	 * <br>
+	 * Opens the file at the given path for logging. Only one file can be open for logging at a time, so this method tries to close the previous file if it exists.
+	 * @param path - The path to open.
+	 * @throws IOException If there was an IOException while opening the file.
+	 *         </ul>
+	 */
 	public static void initFile(Path path) throws IOException {
+		try {
+			if (file != null) file.close();
+		} catch (Exception e) {}
+		
 		file = new PrintStream(new FileOutputStream(path.toFile()), true);
 	}
 

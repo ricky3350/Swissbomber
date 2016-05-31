@@ -52,7 +52,7 @@ public class Main {
 				{w,w,w,w,w,w,w,w,w,w,w,w,w}
 		};
 
-		new Game(grid, 2);
+		Game.init(grid, 2);
 	}
 
 }

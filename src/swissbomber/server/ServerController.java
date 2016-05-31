@@ -38,12 +38,25 @@ public class ServerController implements Controller {
 	}
 
 	@Override
-	public void step(Game game, long deltaTime) {
+	public void step(long deltaTime) {
 		if (!character.isAlive()) return;
 
 		if (keyPressed[4] && !isHeld[0] && character.getCurrentBombs() > 0) {
-			if (game.placeBomb((int) character.getX(), (int) character.getY(), character)) {
+			Bomb bomb = Game.placeBomb((int) character.getX(), (int) character.getY(), character);
+			if (bomb != null) {
 				character.removeBomb();
+				for (Controller c : Game.getControllers()) {
+					if (!(c instanceof ServerController)) continue;
+
+					ServerController controller = (ServerController) c;
+
+					try {
+						controller.write(7, controller.indices[this.index], bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, (int) (character.getX()), (int) (character.getY()));
+						controller.write(8, controller.indices[this.index], this.character.getCurrentBombs());
+					} catch (IOException e) {
+						controller.character.kill();
+					}
+				}
 			}
 
 			isHeld[0] = true;
@@ -71,21 +84,33 @@ public class ServerController implements Controller {
 			}
 		}
 
-		character.move(game, angle, deltaTime);
+		float x1 = character.getX(), y1 = character.getY();
+		character.move(angle, deltaTime);
+		if (Math.abs(character.getX() - x1) + Math.abs(character.getY() - y1) > 0.001) {
+			for (Controller c : Game.getControllers()) {
+				if (!(c instanceof ServerController) || c == this) continue;
+
+				ServerController controller = (ServerController) c;
+
+				try {
+					controller.write(0, controller.indices[this.index], Float.floatToIntBits(character.getX()), Float.floatToIntBits(character.getY()));
+				} catch (IOException e) {}
+			}
+		}
 	}
 
 	public void read() throws IOException {
 		int key = in.readInt();
 		boolean down = in.readBoolean();
 
-		if (key < 0 || key >= keyPressed.length) {
+		if (key >= 0 && key < keyPressed.length) {
 			keyPressed[key] = down;
 			if (!down && key >= 4) isHeld[key - 4] = false;
 			Log.print("PLAYER" + index, (down ? "Pressed" : "Released") + " key " + key);
 		}
 	}
 
-	public void write(int cmd, int... args) throws IOException {
+	public synchronized void write(int cmd, int... args) throws IOException {
 		out.writeInt(cmd);
 		for (int arg : args) {
 			out.writeInt(arg);
@@ -95,6 +120,17 @@ public class ServerController implements Controller {
 		for (int i : args)
 			s += ", " + i;
 		Log.print("SERVER -> PLAYER" + index, s);
+	}
+	
+	public synchronized void write(int[] cmd) throws IOException {
+		for (int arg : cmd) {
+			out.writeInt(arg);
+		}
+		out.flush();
+		String s = "";
+		for (int i : cmd)
+			s += ", " + i;
+		Log.print("SERVER -> PLAYER" + index, s.substring(2));
 	}
 
 	public void start() {
@@ -108,7 +144,7 @@ public class ServerController implements Controller {
 					character.kill();
 					return;
 				}
-				
+
 				while (true) {
 					try {
 						read();
