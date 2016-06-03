@@ -13,13 +13,17 @@ public class Powerup extends Tile {
 	 */
 	public static final Powerup NULL = new Powerup();
 	
+	private static final float POWERUP_PROBABILITY = 0.7F;
+	
 	public static final Powerup[] POWERUPS = {
 			new Powerup(1, Color.RED, 10, "power+"),
 			new Powerup(1, Color.GREEN, 10, "speed+"),
 			new Powerup(1, Color.BLUE, 10, "bombs+"),
-			new Powerup(1, Color.GRAY, 2, "pierce"),
-			new Powerup(1, Color.CYAN, 2, "remote"),
-			//new Powerup(1, Color.ORANGE, 2, "kick") // Kick still not implemented
+			new Powerup(1, Color.GRAY, 3, "pierce"),
+			new Powerup(1, Color.CYAN, 3, "remote"),
+			new Powerup(1, Color.ORANGE, 3, "kick"),
+			new Powerup(1, Color.BLACK, 10, "nextDangerous"),
+			new Powerup(1, Color.ORANGE, 10, "nextPowerful")
 	};
 	public final int rarity;
 	public final String effect;
@@ -70,7 +74,7 @@ public class Powerup extends Tile {
 					relativeFreq.add(p);
 				}
 			}
-			final int n = relativeFreq.size() * 3;
+			final float n = relativeFreq.size() * (POWERUP_PROBABILITY / (1 - POWERUP_PROBABILITY));
 			for (int i = 0; i < n; i++) {
 				relativeFreq.add(Powerup.NULL);
 			}

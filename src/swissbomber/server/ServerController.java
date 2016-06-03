@@ -11,7 +11,9 @@ public class ServerController implements Controller {
 	private boolean[] keyPressed = new boolean[6];
 	private boolean[] isHeld = new boolean[2];
 
+	@Deprecated
 	protected final int[] indices;
+	@Deprecated
 	protected final int index;
 
 	protected final Socket socket;
@@ -37,6 +39,20 @@ public class ServerController implements Controller {
 		this.index = i;
 	}
 
+	/**
+	 * <ul>
+	 * <b><i>indexOf</i></b><br>
+	 * <br>
+	 * <code>&nbsp;public int indexOf(Character player)</code><br>
+	 * <br>
+	 * @param player - The Player to get the index of
+	 * @return The index of the given player in the corresponding client's player list.
+	 * </ul>
+	 */
+	public int indexOf(Character player) {
+		return indices[Game.getCharacters().indexOf(player)];
+	}
+	
 	@Override
 	public void step(long deltaTime) {
 		if (!character.isAlive()) return;

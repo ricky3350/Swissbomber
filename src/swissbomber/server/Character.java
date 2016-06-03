@@ -20,7 +20,7 @@ public class Character {
 	private boolean piercingBombs = false;
 	private boolean remoteBombs = false;
 	private List<Bomb> activeRemoteBombs = new ArrayList<Bomb>();
-	private boolean kicks = false;
+	private boolean kicks = false, nextDangerous = false, nextPowerful = false;;
 
 	private float radius = 0.4f;
 
@@ -39,6 +39,7 @@ public class Character {
 	public void kill() {
 		boolean wasAlive = alive;
 		alive = false;
+		Game.tryEndGame();
 		if (wasAlive) Network.notifyDead(this);
 	}
 
@@ -104,6 +105,16 @@ public class Character {
 
 	public boolean canKick() {
 		return kicks;
+	}
+
+	
+	public boolean isNextDangerous() {
+		return nextDangerous;
+	}
+
+	
+	public boolean isNextPowerful() {
+		return nextPowerful;
 	}
 
 	public float getRadius() {
@@ -222,6 +233,12 @@ public class Character {
 				break;
 			case "kick":
 				kicks = true;
+				break;
+			case "nextDangerous":
+				nextDangerous = true;
+				break;
+			case "nextPowerful":
+				nextPowerful = true;
 				break;
 			default:
 				Log.print("ERROR", "Undefined powerup \"" + powerup.effect + "\"");

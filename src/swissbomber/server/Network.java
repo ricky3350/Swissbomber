@@ -3,8 +3,6 @@ package swissbomber.server;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.nio.file.Files;
@@ -30,17 +28,17 @@ public class Network {
 			for (ServerController sc : scs) {
 				try {
 					for (int n = 0; n < Game.getCharacters().size(); n++) {
-						Character c = Game.getCharacters().get(n);
+						Character character = Game.getCharacters().get(n);
 						
 						int i = sc.indices[n];
 						
-						if (c.isAlive()) {
-							sc.write(0, i, Float.floatToIntBits(c.getX()), Float.floatToIntBits(c.getY()));
-							sc.write(4, i, 0, c.getBombPower());
-							sc.write(4, i, 1, c.getSpeed());
-							sc.write(4, i, 2, c.getMaxBombs());
-							sc.write(4, i, 3, c.hasPiercingBombs() ? 1 : 0);
-							sc.write(4, i, 4, c.hasRemoteBombs() ? 1 : 0);
+						if (character.isAlive()) {
+							sc.write(0, i, Float.floatToIntBits(character.getX()), Float.floatToIntBits(character.getY()));
+							sc.write(4, i, 0, character.getBombPower());
+							sc.write(4, i, 1, character.getSpeed());
+							sc.write(4, i, 2, character.getMaxBombs());
+							sc.write(4, i, 3, character.hasPiercingBombs() ? 1 : 0);
+							sc.write(4, i, 4, character.hasRemoteBombs() ? 1 : 0);
 						} else {
 							sc.write(5, i);
 						}
@@ -53,9 +51,9 @@ public class Network {
 								sc.write(1, x, y);
 							} else if (tile instanceof Powerup) {
 								sc.write(3, Arrays.asList(Powerup.POWERUPS).indexOf(tile), x, y);
-							} else if (tile instanceof Bomb) {
-								Bomb bomb = (Bomb) tile;
-								sc.write(10, (int) (bomb.timer / 1000), Game.getControllers().indexOf(bomb.owner), bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, bomb.explosionSize[0], bomb.explosionSize[1], bomb.explosionSize[2], bomb.explosionSize[3], x, y);
+//							} else if (tile instanceof Bomb) {
+//								Bomb bomb = (Bomb) tile;
+//								sc.write(10, (int) (bomb.timer / 1000), Game.getControllers().indexOf(bomb.owner), bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, bomb.explosionSize[0], bomb.explosionSize[1], bomb.explosionSize[2], bomb.explosionSize[3], x, y);
 							} else {
 								sc.write(6, tile.getArmor(), tile.getColor() == null ? 0 : tile.getColor().getRGB(), x, y);
 							}
@@ -67,8 +65,6 @@ public class Network {
 	});
 
 	protected static ServerSocket socket;
-	protected static ObjectInputStream in;
-	protected static ObjectOutputStream out;
 
 	private Network() {}
 
@@ -166,10 +162,10 @@ public class Network {
 	 *        </ul>
 	 */
 	public static void notifyDead(Character character) {
-		int index = Game.characters.indexOf(character);
+		int index = Game.getCharacters().indexOf(character);
 		if (index < 0) return;
 
-		for (Controller controller : Game.controllers) {
+		for (Controller controller : Game.getControllers()) {
 			if (!(controller instanceof ServerController)) continue;
 
 			ServerController sc = (ServerController) controller;
@@ -180,6 +176,10 @@ public class Network {
 				if (sc.character.isAlive()) sc.character.kill();
 			}
 		}
+	}
+
+	public static void close() throws IOException {
+		socket.close();
 	}
 
 }

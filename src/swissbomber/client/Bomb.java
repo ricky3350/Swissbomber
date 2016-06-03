@@ -8,9 +8,7 @@ import java.io.IOException;
 
 import javax.imageio.ImageIO;
 
-import swissbomber.Tile;
-
-public class Bomb extends Tile {
+public class Bomb {
 
 	private static BufferedImage[] animations = new BufferedImage[100];
 
@@ -26,7 +24,8 @@ public class Bomb extends Tile {
 	@SuppressWarnings("unused")
 	private boolean piercing;
 	
-	private boolean remote, remoteActivated = false;
+	private boolean remote, remoteActivated = false, powerful, dangerous, sliding;
+	private int slideDirection;
 
 	private int[] explosionSize = new int[4]; // Extends up, down, left, right
 
@@ -50,9 +49,7 @@ public class Bomb extends Tile {
 		return animations[100 - i];
 	}
 
-	Bomb(int x, int y, int armor, Color color, Character owner, int power, boolean piercing, boolean remote) {
-		super(armor, color);
-
+	Bomb(int x, int y, Character owner, int power, boolean piercing, boolean remote) {
 		this.x = x;
 		this.y = y;
 		this.owner = owner;
@@ -85,6 +82,10 @@ public class Bomb extends Tile {
 
 	public int[] getExplosionSize() {
 		return explosionSize;
+	}
+	
+	public void setExplosionSize(int[] explosionSize) {
+		System.arraycopy(explosionSize, 0, this.explosionSize, 0, 4);
 	}
 
 	public void step(Game game, long deltaTime) {

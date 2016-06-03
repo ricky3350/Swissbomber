@@ -13,9 +13,9 @@ import swissbomber.Tile;
 
 public class Game {
 
-	static List<Character> characters = new ArrayList<>();
-	static List<Controller> controllers = new ArrayList<>();
-	static List<Bomb> bombs = new ArrayList<>();
+	private static List<Character> characters = new ArrayList<>();
+	private static List<Controller> controllers = new ArrayList<>();
+	private static List<Bomb> bombs = new ArrayList<>();
 	private static Tile[][] map;
 
 	private static final int TARGET_FPS = 60;
@@ -89,19 +89,21 @@ public class Game {
 	}
 
 	static Bomb placeBomb(int x, int y, Character owner) {
-		if (map[x][y] == null) {
-			map[x][y] = new Bomb(x, y, 1, Color.BLACK, owner, owner.getBombPower(), owner.hasPiercingBombs(), owner.hasRemoteBombs());
-			bombs.add((Bomb) map[x][y]);
-			if (owner.hasRemoteBombs()) owner.addRemoteBomb((Bomb) map[x][y]);
-			for (Character character : characters) {
-				if (character.collidesWithTile(x, y)) {
-					character.addTempUncollidableTile(map[x][y]);
-				}
-			}
-			return (Bomb) map[x][y];
-		}
+//		if (map[x][y] == null) {
+//			map[x][y] = new Bomb(x, y, 1, Color.BLACK, owner, owner.getBombPower(), owner.hasPiercingBombs(), owner.hasRemoteBombs());
+//			bombs.add((Bomb) map[x][y]);
+//			if (owner.hasRemoteBombs()) owner.addRemoteBomb((Bomb) map[x][y]);
+//			for (Character character : characters) {
+//				if (character.collidesWithTile(x, y)) {
+//					character.addTempUncollidableTile(map[x][y]);
+//				}
+//			}
+//			return (Bomb) map[x][y];
+//		} TODO
 		return null;
 	}
+
+	private static boolean gameOver = false;
 
 	private static final Runnable GAME_LOOP = new Runnable() {
 
@@ -109,7 +111,7 @@ public class Game {
 		public void run() {
 			long deltaTime, currentTime, previousTime = System.nanoTime(), deltaSecond, previousSecond = System.nanoTime();
 
-			while (true) {
+			while (!gameOver) {
 				currentTime = System.nanoTime();
 				deltaTime = currentTime - previousTime;
 
@@ -159,10 +161,10 @@ public class Game {
 						commands.add(new int[] {1, x, y});
 					} else if (map[x][y] instanceof Powerup) {
 						commands.add(new int[] {3, powerups.indexOf(map[x][y]), x, y});
-					} else if (map[x][y] instanceof Bomb) {
-						Bomb bomb = (Bomb) map[x][y];
-						commands.add(new int[] {7, characters.indexOf(bomb.owner), bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, x, y});
-						commands.add(new int[] {2, (int) (bomb.timer / 1000), x, y});
+//					} else if (map[x][y] instanceof Bomb) { TODO
+//						Bomb bomb = (Bomb) map[x][y];
+//						commands.add(new int[] {7, characters.indexOf(bomb.owner), bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, x, y});
+//						commands.add(new int[] {2, (int) (bomb.timer / 1000), x, y});
 					} else {
 						commands.add(new int[] {6, map[x][y].getArmor(), map[x][y].getColor().getRGB(), x, y});
 					}
@@ -187,6 +189,26 @@ public class Game {
 			} catch (IOException e) {
 				controller.character.kill();
 			}
+		}
+	}
+
+	public static void tryEndGame() {
+		if (characters.stream().filter(c -> c.isAlive()).count() <= 1) {
+			gameOver = true;
+			Network.NETWORK_LOOP.stop();
+			for (Controller controller : controllers) {
+				if (!(controller instanceof ServerController)) continue;
+				try {
+					((ServerController) controller).write(-1);
+				} catch (IOException e) {}
+				try {
+					((ServerController) controller).socket.close();
+				} catch (IOException e) {}
+			}
+
+			try {
+				Network.close();
+			} catch (IOException e) {}
 		}
 	}
 

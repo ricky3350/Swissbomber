@@ -5,23 +5,27 @@ import java.awt.Color;
 import swissbomber.Powerup;
 import swissbomber.Tile;
 
-public class Bomb extends Tile {
+public class Bomb {
 
 	public final long TIMER_START;
 
-	int x, y;
+	public final int id;
+	private static int LAST_ID = 0;
+	
+	int x, y; // TODO
 	Character owner;
 	long timer;
 	boolean hasExploded = false;
 
 	int power;
-	boolean piercing, remote, remoteActivated = false;
+	boolean piercing, remote, remoteActivated = false, powerful, dangerous, sliding;
+	private int slideDirection;
 
 	int[] explosionSize = new int[4]; // Extends up, down, left, right
 
-	Bomb(int x, int y, int armor, Color color, Character owner, int power, boolean piercing, boolean remote) {
-		super(armor, color);
-
+	Bomb(int x, int y, Character owner, int power, boolean piercing, boolean remote) {
+		this.id = LAST_ID++;
+		
 		this.x = x;
 		this.y = y;
 		this.owner = owner;
@@ -61,15 +65,15 @@ public class Bomb extends Tile {
 		if (timer <= -1000000000) {
 			return true;
 		} else if (timer <= 0 && !hasExploded) {
-			Tile[][] map = Game.getMap();
-
-			for (int x = 0; x < map.length; x++) {
-				for (int y = 0; y < map[x].length; y++) {
-					if (map[x][y] == this) {
-						map[x][y] = null;
-					}
-				}
-			}
+//			Tile[][] map = Game.getMap();
+//
+//			for (int x = 0; x < map.length; x++) {
+//				for (int y = 0; y < map[x].length; y++) {
+//					if (map[x][y] == this) {
+//						map[x][y] = null;
+//					}
+//				}
+//			}
 
 			explosionSize[0] = y;
 			explosionSize[1] = y;
@@ -115,10 +119,11 @@ public class Bomb extends Tile {
 
 		Tile tile = Game.getMap()[x][y];
 		if (tile != null) {
-			if (tile instanceof Bomb) {
-				((Bomb) tile).explode();
-				Game.getMap()[x][y] = null;
-			} else if (tile instanceof Powerup) {
+//			if (tile instanceof Bomb) {
+//				((Bomb) tile).explode();
+//				Game.getMap()[x][y] = null;
+//			} else 
+			if (tile instanceof Powerup) {
 				Game.getMap()[x][y] = null;
 			} else {
 				if (power >= tile.getArmor() && tile.getArmor() > 0) { // TODO: Better armor mechanics

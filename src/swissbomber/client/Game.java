@@ -13,6 +13,8 @@ import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 import javax.swing.JPanel;
 
@@ -25,7 +27,7 @@ public class Game extends JPanel {
 
 	List<Character> characters = new ArrayList<>();
 	Controller controller;
-	List<Bomb> bombs = new ArrayList<>();
+	Map<Integer, Bomb> bombs = new TreeMap<>();
 	Tile[][] map = new Tile[15][13];
 
 	private int currentFPS = 0;
@@ -87,15 +89,37 @@ public class Game extends JPanel {
 		return TILE_LENGTH;
 	}
 
-	void placeBomb(int x, int y, int charIndex, int power, boolean piercing, boolean remote) {
-		map[x][y] = new Bomb(x, y, 1, Color.BLACK, characters.get(charIndex), power, piercing, remote);
-		bombs.add((Bomb) map[x][y]);
-		for (Character character : characters) {
-			if (character.collidesWithTile(x, y)) {
-				character.addTempUncollidableTile(map[x][y]);
-			}
-		}
+	Bomb setBomb(int id, int timer, int x, int y, Character character, int power, boolean piercing, boolean remote, boolean dangerous, boolean powerful, int explosionSize0, int explosionSize1, int explosionSize2, int explosionSize3) {
+		Bomb bomb = new Bomb(x, y, character, power, piercing, remote);
+		
+		return bomb;
 	}
+	
+//	Bomb placeBomb(int x, int y, int charIndex, int power, boolean piercing, boolean remote) {
+////		map[x][y] = new Bomb(x, y, 1, Color.BLACK, characters.get(charIndex), power, piercing, remote);
+////		bombs.add((Bomb) map[x][y]);
+//		Bomb bomb = new Bomb(x, y, characters.get(charIndex), power, piercing, remote);
+//		for (Character character : characters) {
+//			if (character.collidesWithBomb(bomb)) {
+//				character.addTempUncollidableBomb(bomb);
+//			}
+//		}
+//		return bomb;
+//	}
+//
+//	void setBomb(int timer, int x, int y, int charIndex, int power, boolean piercing, boolean remote, int a, int b, int c, int d) {
+//		if (map[x][y] instanceof Bomb) {
+//			Bomb bomb = (Bomb) map[x][y];
+//
+//			bomb.setTimer(timer);
+//			bomb.setExplosionSize(new int[] {a, b, c, d});
+//		} else {
+//			Bomb bomb = placeBomb(x, y, charIndex, power, piercing, remote);
+//			
+//			bomb.setTimer(timer);
+//			bomb.setExplosionSize(new int[] {a, b, c, d});
+//		}
+//	}
 
 	@Override
 	public void paintComponent(Graphics g) {
@@ -109,9 +133,7 @@ public class Game extends JPanel {
 			for (int y = 0; y < map[x].length; y++) {
 				if (map[x][y] != null) {
 					gg.setColor(map[x][y].getColor());
-					if (map[x][y] instanceof Bomb) {
-						gg.drawImage(((Bomb) map[x][y]).getAnimation(), x * TILE_LENGTH, y * TILE_LENGTH, TILE_LENGTH, TILE_LENGTH, null);
-					} else if (map[x][y] instanceof Powerup) {
+					if (map[x][y] instanceof Powerup) {
 						gg.fillOval(x * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), y * TILE_LENGTH + Math.round(TILE_LENGTH * (0.5f - ((Powerup) map[x][y]).radius)), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH), Math.round(((Powerup) map[x][y]).radius * 2 * TILE_LENGTH));
 					} else {
 						gg.fillRect(x * TILE_LENGTH, y * TILE_LENGTH, TILE_LENGTH, TILE_LENGTH);
@@ -120,12 +142,11 @@ public class Game extends JPanel {
 			}
 		}
 
-		for (Bomb bomb : bombs.toArray(new Bomb[bombs.size()])) {
+		for (Bomb bomb : bombs.values().toArray(new Bomb[bombs.size()])) {
 			if (bomb.hasExploded()) {
 				BufferedImage img = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_ARGB_PRE);
 				Graphics2D ig = img.createGraphics();
 				ig.setColor(new Color(bomb.getColor().getRGB() & 16777215)); // Remove alpha from color
-//				ig.setColor(new Color(bomb.getColor().getRed(), bomb.getColor().getGreen(), bomb.getColor().getBlue()));
 				ig.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC, bomb.getColor().getAlpha() / 255f));
 
 				ig.fillRect(bomb.getExplosionSize()[2] * TILE_LENGTH, Math.round((bomb.getY() + 0.05f) * TILE_LENGTH), (bomb.getExplosionSize()[3] - bomb.getExplosionSize()[2] + 1) * TILE_LENGTH, Math.round(0.9f * TILE_LENGTH));
@@ -133,6 +154,8 @@ public class Game extends JPanel {
 
 				ig.dispose();
 				gg.drawImage(img, 0, 0, null);
+			} else {
+				gg.drawImage(bomb.getAnimation(), bomb.getX() * TILE_LENGTH, bomb.getY() * TILE_LENGTH, TILE_LENGTH, TILE_LENGTH, null);
 			}
 		}
 
@@ -194,10 +217,7 @@ public class Game extends JPanel {
 						} else if (input[0] == 1) {
 							game.map[input[1]][input[2]] = null;
 						} else if (input[0] == 2) {
-							Tile bomb = game.map[input[2]][input[3]];
-							if (bomb instanceof Bomb) {
-								((Bomb) bomb).setTimer(input[1]);
-							}
+							game.bombs.get(input[2]).setTimer(input[1]);
 						} else if (input[0] == 3) {
 							game.map[input[2]][input[3]] = Powerup.POWERUPS[input[1]];
 						} else if (input[0] == 4) {
@@ -223,10 +243,17 @@ public class Game extends JPanel {
 							game.characters.get(input[1]).kill();
 						} else if (input[0] == 6) {
 							game.map[input[3]][input[4]] = new Tile(input[1], new Color(input[2]));
-						} else if (input[0] == 7) {
-							game.placeBomb(input[5], input[6], input[1], input[2], input[3] != 0, input[4] != 0);
+//						} else if (input[0] == 7) { TODO
+//							game.placeBomb(input[5], input[6], input[1], input[2], input[3] != 0, input[4] != 0);
 						} else if (input[0] == 8) {
 							game.characters.get(input[1]).currentBombs = input[2];
+//						} else if (input[0] == 9) {
+//							Tile bomb = game.map[input[5]][input[6]];
+//							if (bomb instanceof Bomb) {
+//								System.arraycopy(input, 1, ((Bomb) bomb).getExplosionSize(), 0, 4);
+//							} TODO
+//						} else if (input[0] == 10) { TODO
+//							game.setBomb(input[1], input[10], input[11], input[2], input[3], input[4] != 0, input[5] != 0, input[6], input[7], input[8], input[9]);
 						}
 					} catch (IOException e) {
 						System.exit(0);
@@ -270,7 +297,7 @@ public class Game extends JPanel {
 	private void update(long deltaTime) {
 		controller.step(this, deltaTime);
 
-		for (Bomb bomb : bombs) {
+		for (Bomb bomb : bombs.values()) {
 			bomb.step(this, deltaTime);
 		}
 

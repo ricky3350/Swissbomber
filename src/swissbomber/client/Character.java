@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import swissbomber.Powerup;
-import swissbomber.Tile;
 
 public class Character {
 
@@ -23,7 +22,7 @@ public class Character {
 
 	private float radius = 0.4f;
 
-	private List<Tile> tempUncollidableTiles = new ArrayList<>();
+	private List<Bomb> tempUncollidableBombs = new ArrayList<>();
 
 	public Character(float positionX, float positionY, Color color) {
 		this.positionX = positionX;
@@ -99,8 +98,8 @@ public class Character {
 		return radius;
 	}
 
-	public void addTempUncollidableTile(Tile tile) {
-		tempUncollidableTiles.add(tile);
+	public void addTempUncollidableBomb(Bomb bomb) {
+		tempUncollidableBombs.add(bomb);
 	}
 
 	public void move(Game game, double angle, long deltaTime) {
@@ -114,13 +113,9 @@ public class Character {
 
 		collidableTiles: for (int[] collidableTile : collidableTiles) {
 			if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] != null) {
-				for (Tile tile : tempUncollidableTiles) {
-					if (game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] == tile) {
-						if (!collidesWithTile((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]))) {
-							tempUncollidableTiles.remove(game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
-						}
-						continue collidableTiles;
-					}
+				for (Bomb bomb : tempUncollidableBombs) {
+					if (!collidesWithBomb(bomb)) tempUncollidableBombs.remove(bomb);
+					continue collidableTiles;
 				}
 
 				float distanceX = Math.abs(positionX - ((int) (positionX + collidableTile[0]) + 0.5f));
@@ -147,7 +142,7 @@ public class Character {
 			}
 		}
 	}
-	
+
 	public void setPosition(float x, float y) {
 		this.positionX = x;
 		this.positionY = y;
@@ -158,20 +153,43 @@ public class Character {
 	}
 
 	public boolean collidesWithTile(int x, int y) {
-		float distanceX = Math.abs(positionX - (x + 0.5f));
-		float distanceY = Math.abs(positionY - (y + 0.5f));
+		return collides(x, y, 0.5F);
+	}
 
-		if (distanceX >= 0.499f + radius) return false;
-		if (distanceY >= 0.499f + radius) return false;
+	/**
+	 * <ul>
+	 * <b><i>collides</i></b><br>
+	 * <br>
+	 * <code>&nbsp;private boolean collides(float x, float y, float radius)</code><br>
+	 * <br>
+	 * Tests whether or not this character collides with a square at the given coordinates
+	 * @param x - The x coordinate of the center of the square
+	 * @param y - The y coordinate of the center of the square
+	 * @param radius - The smallest distance from the center of the square to the edge
+	 * @return Whether or not this <code>Character</code> collides with the square
+	 *         </ul>
+	 */
+	private boolean collides(float x, float y, float radius) {
+		float distanceX = Math.abs(positionX - (x + radius));
+		float distanceY = Math.abs(positionY - (y + radius));
 
-		if (distanceX <= 0.5f) return true;
-		if (distanceY <= 0.5f) return true;
+		if (distanceX - radius - this.radius >= -0.001) return false;
+		if (distanceY - radius - this.radius >= -0.001) return false;
 
-		return Math.pow(distanceX - 0.5f, 2) + Math.pow(distanceY - 0.5f, 2) <= Math.pow(radius, 2);
+		if (distanceX <= radius) return true;
+		if (distanceY <= radius) return true;
+
+		float dx = distanceX - radius;
+		float dy = distanceY - radius;
+		return dx * dx + dy * dy <= this.radius * this.radius;
 	}
 
 	public boolean collidesWithPowerup(int x, int y, Powerup powerup) {
-		return Math.sqrt(Math.pow(positionX - (x + 0.5f), 2) + Math.pow(positionY - (y + 0.5f), 2)) <= radius + powerup.radius;
+		return Math.hypot(positionX - (x + 0.5f), positionY - (y + 0.5f)) <= radius + powerup.radius;
+	}
+
+	public boolean collidesWithBomb(Bomb bomb) {
+		return collides(bomb.getX(), bomb.getY(), 0.5F);
 	}
 
 }
