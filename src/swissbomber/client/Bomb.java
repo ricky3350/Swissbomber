@@ -19,9 +19,7 @@ public class Bomb {
 	private long timer;
 	private boolean hasExploded = false;
 
-	@SuppressWarnings("unused")
 	private int power;
-	@SuppressWarnings("unused")
 	private boolean piercing;
 	
 	private boolean remote, remoteActivated = false, powerful, dangerous, sliding;

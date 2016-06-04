@@ -24,7 +24,7 @@ public class Character {
 
 	private float radius = 0.4f;
 
-	private List<Tile> tempUncollidableTiles = new ArrayList<>();
+	private List<Bomb> tempUncollidableBombs = new ArrayList<>();
 
 	Character(float positionX, float positionY, Color color) {
 		this.positionX = positionX;
@@ -107,12 +107,10 @@ public class Character {
 		return kicks;
 	}
 
-	
 	public boolean isNextDangerous() {
 		return nextDangerous;
 	}
 
-	
 	public boolean isNextPowerful() {
 		return nextPowerful;
 	}
@@ -121,10 +119,12 @@ public class Character {
 		return radius;
 	}
 
-	public void addTempUncollidableTile(Tile tile) {
-		tempUncollidableTiles.add(tile);
+	public void addTempUncollidableBomb(Bomb bomb) {
+		tempUncollidableBombs.add(bomb);
 	}
 
+	private static final int[][] COLLIDABLE_TILES = {{0, 0}, {-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+	
 	public void move(double angle, long deltaTime) {
 		if (!alive) return;
 
@@ -132,48 +132,51 @@ public class Character {
 		positionX += Math.cos(Math.toRadians(angle)) * distance;
 		positionY -= Math.sin(Math.toRadians(angle)) * distance;
 
-		int[][] collidableTiles = {{0, 0}, {-1, -1}, {-1, 0}, {-1, 1}, {0, -1}, {0, 1}, {1, -1}, {1, 0}, {1, 1}};
+		Game.getBombs().stream().filter(b -> !tempUncollidableBombs.contains(b) && collidesWithBomb(b)).forEach(bomb -> {
+			if (kicks) {
+				// TODO kick
+			}
+		});
+		
+		for (Bomb bomb : tempUncollidableBombs.toArray(new Bomb[tempUncollidableBombs.size()])) {
+			if (!collidesWithBomb(bomb)) {
+				tempUncollidableBombs.remove(bomb);
+			}
+		}
+		
+		for (int[] collidableTile : COLLIDABLE_TILES) {
+			Tile tile = Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])];
 
-		collidableTiles: for (int[] collidableTile : collidableTiles) {
-			if (Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] != null) {
-				if (Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] instanceof Powerup) {
-					if (collidesWithPowerup((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]), (Powerup) Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])])) {
-						activatePowerup((Powerup) Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
-						Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] = null;
-					}
-					continue;
+			float distanceX = Math.abs(positionX - ((int) (positionX + collidableTile[0]) + 0.5f));
+			float distanceY = Math.abs(positionY - ((int) (positionY + collidableTile[1]) + 0.5f));
+
+			if (tile instanceof Powerup) {
+				if (collidesWithPowerup((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]), (Powerup) tile)) {
+					activatePowerup((Powerup) tile);
+					Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] = null;
 				}
+				continue;
+			}
 
-				for (Tile tile : tempUncollidableTiles) {
-					if (Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])] == tile) {
-						if (!collidesWithTile((int) (positionX + collidableTile[0]), (int) (positionY + collidableTile[1]))) {
-							tempUncollidableTiles.remove(Game.getMap()[(int) (positionX + collidableTile[0])][(int) (positionY + collidableTile[1])]);
-						}
-						continue collidableTiles;
-					}
-				}
+			if (distanceX > 0.5f + radius) continue;
+			if (distanceY > 0.5f + radius) continue;
 
-				float distanceX = Math.abs(positionX - ((int) (positionX + collidableTile[0]) + 0.5f));
-				float distanceY = Math.abs(positionY - ((int) (positionY + collidableTile[1]) + 0.5f));
+			if (distanceY <= 0.5f && distanceX >= distanceY) {
+				positionX = properPosition(positionX, (float) (Math.floor(positionX) + 0.5f + collidableTile[0]));
+				continue;
+			}
+			if (distanceX <= 0.5f && distanceX <= distanceY) {
+				positionY = properPosition(positionY, (float) (Math.floor(positionY) + 0.5f + collidableTile[1]));
+				continue;
+			}
 
-				if (distanceX > 0.5f + radius) continue;
-				if (distanceY > 0.5f + radius) continue;
-
-				if (distanceY <= 0.5f && distanceX >= distanceY) {
-					positionX = properPosition(positionX, (float) (Math.floor(positionX) + 0.5f + collidableTile[0]));
-					continue;
-				}
-				if (distanceX <= 0.5f && distanceX <= distanceY) {
-					positionY = properPosition(positionY, (float) (Math.floor(positionY) + 0.5f + collidableTile[1]));
-					continue;
-				}
-
-				if (Math.pow(distanceX - 0.5f, 2) + Math.pow(distanceY - 0.5f, 2) <= Math.pow(radius, 2)) {
-					if (distanceY > distanceX)
-						positionY = (float) (Math.floor(positionY) + 0.5f + collidableTile[1] * (0.5f - radius));
-					else
-						positionX = (float) (Math.floor(positionX) + 0.5f + collidableTile[0] * (0.5f - radius));
-				}
+			float dx = distanceX - 0.5f;
+			float dy = distanceY - 0.5f;
+			if (dx * dx + dy * dy <= radius * radius) {
+				if (distanceY > distanceX)
+					positionY = (float) (Math.floor(positionY) + 0.5f + collidableTile[1] * (0.5f - radius));
+				else
+					positionX = (float) (Math.floor(positionX) + 0.5f + collidableTile[0] * (0.5f - radius));
 			}
 		}
 	}
@@ -183,30 +186,46 @@ public class Character {
 	}
 
 	public boolean collidesWithTile(int x, int y) {
-		float distanceX = Math.abs(positionX - (x + 0.5f));
-		float distanceY = Math.abs(positionY - (y + 0.5f));
+		return collides(x + 0.5F, y + 0.5F, 1, 1);
+	}
 
-		if (distanceX >= 0.499f + radius) return false;
-		if (distanceY >= 0.499f + radius) return false;
-
-		if (distanceX <= 0.5f) return true;
-		if (distanceY <= 0.5f) return true;
-
-		return Math.pow(distanceX - 0.5f, 2) + Math.pow(distanceY - 0.5f, 2) <= Math.pow(radius, 2);
+	public boolean collidesWithBomb(Bomb bomb) {
+		return collides(bomb.x, bomb.y, 1, 1);
 	}
 
 	public boolean collidesWithPowerup(int x, int y, Powerup powerup) {
 		return Math.hypot(positionX - (x + 0.5f), positionY - (y + 0.5f)) <= radius + powerup.radius;
 	}
 
+	/**
+	 * <ul>
+	 * <b><i>collides</i></b><br>
+	 * <br>
+	 * <code>&nbsp;private boolean collides(float x, float y, float width, float height)</code><br>
+	 * <br>
+	 * Tests whether or not this character collides with a rectangle centered at the given coordinates with the given dimensions<br>
+	 * <i>Note</i>: the character is assumed to be a square, <i>not a circle</i>.
+	 * @param x - The x coordinate of the center of the rectangle
+	 * @param y - The y coordinate of the center of the rectangle
+	 * @param width - The width of the rectangle
+	 * @param height - The height of the rectangle
+	 * @return Whether or not this <code>Character</code> collides with the rectangle
+	 *         </ul>
+	 */
+	public boolean collides(float x, float y, float width, float height) {
+		if (width <= 0 || height <= 0) return false; 
+		
+		float dx = Math.abs(positionX - x);
+		float dy = Math.abs(positionY - y);
+
+		return dx < width / 2 + radius && dy < height / 2 + radius;
+	}
+
 	private ArrayDeque<Powerup> nextPowerups = new ArrayDeque<>();
 
 	public Powerup nextPowerup() {
 		if (nextPowerups.isEmpty()) {
-			List<Powerup> pps = Powerup.randomPowerupOrder();
-			Log.print("DEBUG", pps.toString());
-			Log.print("DEBUG", nextPowerups.toString());
-			nextPowerups.addAll(pps);
+			nextPowerups.addAll(Powerup.randomPowerupOrder());
 		}
 		return nextPowerups.pop();
 	}

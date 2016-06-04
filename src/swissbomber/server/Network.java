@@ -8,13 +8,9 @@ import java.net.ServerSocket;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.List;
 
 import javax.swing.Timer;
-
-import swissbomber.Powerup;
-import swissbomber.Tile;
 
 public class Network {
 
@@ -27,36 +23,18 @@ public class Network {
 			ServerController[] scs = Game.getControllers().stream().filter(c -> c instanceof ServerController).map(c -> (ServerController) c).toArray(size -> new ServerController[size]);
 			for (ServerController sc : scs) {
 				try {
-					for (int n = 0; n < Game.getCharacters().size(); n++) {
-						Character character = Game.getCharacters().get(n);
-						
-						int i = sc.indices[n];
-						
+					for (Character character : Game.getCharacters()) {
 						if (character.isAlive()) {
-							sc.write(0, i, Float.floatToIntBits(character.getX()), Float.floatToIntBits(character.getY()));
-							sc.write(4, i, 0, character.getBombPower());
-							sc.write(4, i, 1, character.getSpeed());
-							sc.write(4, i, 2, character.getMaxBombs());
-							sc.write(4, i, 3, character.hasPiercingBombs() ? 1 : 0);
-							sc.write(4, i, 4, character.hasRemoteBombs() ? 1 : 0);
+							Commands.positionPlayer(sc, character);
+							Commands.setPowerups(sc, character);
 						} else {
-							sc.write(5, i);
+							Commands.playerDied(sc, character);
 						}
 					}
 
 					for (int x = 0; x < Game.getMap().length; x++) {
 						for (int y = 0; y < Game.getMap()[x].length; y++) {
-							Tile tile = Game.getMap()[x][y];
-							if (tile == null) {
-								sc.write(1, x, y);
-							} else if (tile instanceof Powerup) {
-								sc.write(3, Arrays.asList(Powerup.POWERUPS).indexOf(tile), x, y);
-//							} else if (tile instanceof Bomb) {
-//								Bomb bomb = (Bomb) tile;
-//								sc.write(10, (int) (bomb.timer / 1000), Game.getControllers().indexOf(bomb.owner), bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, bomb.explosionSize[0], bomb.explosionSize[1], bomb.explosionSize[2], bomb.explosionSize[3], x, y);
-							} else {
-								sc.write(6, tile.getArmor(), tile.getColor() == null ? 0 : tile.getColor().getRGB(), x, y);
-							}
+							Commands.setTile(sc, x, y);
 						}
 					}
 				} catch (IOException exception) {}
@@ -129,18 +107,17 @@ public class Network {
 	 * <br>
 	 * <code>&nbsp;public static ServerController getNewPlayer({@link Character} ch, int index, int numPlayers) throws IOException</code><br>
 	 * <br>
-	 * Creates a new {@link ServerController} for a new client, using the given character. {@link ServerController#indices} are assigned based on the given index and numPlayers.
+	 * Creates a new {@link ServerController} for a new client, using the given character. {@link ServerController#indices} are assigned based on the given index.
 	 * @param ch - The {@link Character} to bind the {@link ServerController} to.
 	 * @param index - The index of this player
-	 * @param numPlayers - The number of players that will be in the game.
 	 * @return A new {@link ServerController}
 	 * @throws IOException if {@link ServerSocket#accept()} throws an IOException
 	 *         </ul>
 	 */
-	public static ServerController getNewPlayer(Character ch, int index, int numPlayers) throws IOException {
+	public static ServerController getNewPlayer(Character ch, int index) throws IOException {
 		try {
-			int[] indices = new int[numPlayers];
-			for (int n = 0; n < numPlayers; n++)
+			int[] indices = new int[Game.getPlayerCount()];
+			for (int n = 0; n < Game.getPlayerCount(); n++)
 				indices[n] = n == index ? 0 : (n < index ? n + 1 : n);
 			ServerController ret = new ServerController(socket.accept(), ch, indices);
 			Log.print("Accepted player at " + ret.socket.getInetAddress().getHostAddress());
@@ -171,7 +148,7 @@ public class Network {
 			ServerController sc = (ServerController) controller;
 
 			try {
-				sc.write(5, sc.indices[index]);
+				Commands.playerDied(sc, character);
 			} catch (IOException e) {
 				if (sc.character.isAlive()) sc.character.kill();
 			}

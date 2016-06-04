@@ -18,6 +18,9 @@ public class Game {
 	private static List<Bomb> bombs = new ArrayList<>();
 	private static Tile[][] map;
 
+	private static int playerCount;
+
+	
 	private static final int TARGET_FPS = 60;
 
 	private Game() {}
@@ -35,36 +38,66 @@ public class Game {
 	 */
 	public static void init(Tile[][] map, int playerCount) {
 		Game.map = map;
+		Game.playerCount = playerCount;
 
 		Color[] colors = {Color.BLUE, Color.GREEN, Color.ORANGE, Color.MAGENTA};
 		float[][] positions = {{1.5f, 1.5f}, {13.5f, 11.5f}, {13.5f, 1.5f}, {1.5f, 11.5f}};
+//		for (int i = 0; i < playerCount; i++) {
+//			try {
+//				Character character = new Character(positions[i][0], positions[i][1], colors[i]);
+//
+//				ServerController controller = Network.getNewPlayer(character, i, playerCount);
+//
+//				Commands.sendVersion(controller);
+//				Commands.sendNumberOfPlayers(controller);
+//				for (int n = 0; n < playerCount; n++) {
+//					Commands.colorPlayer(controller, n, colors[n]);
+//					controller.write(0, controller.indices[n], Float.floatToIntBits(positions[n][0]), Float.floatToIntBits(positions[n][1]));
+//				}
+//				for (int x = 0; x < map.length; x++) {
+//					for (int y = 0; y < map[x].length; y++) {
+//						if (map[x][y] == null) {
+//							controller.write(1, x, y);
+//						} else {
+//							controller.write(6, map[x][y].getArmor(), map[x][y].getColor().getRGB(), x, y);
+//						}
+//					}
+//				}
+//
+//				controllers.add(controller);
+//				characters.add(character);
+//			} catch (IOException e) {
+//				i--;
+//			}
+//		}
+
 		for (int i = 0; i < playerCount; i++) {
+			characters.add(new Character(positions[i][0], positions[i][1], colors[i]));
+		}
+
+		while (controllers.size() < characters.size()) {
 			try {
-				Character character = new Character(positions[i][0], positions[i][1], colors[i]);
+				final int i = controllers.size();
+				ServerController sc = Network.getNewPlayer(characters.get(i), i);
 
-				ServerController controller = Network.getNewPlayer(character, i, playerCount);
+				Commands.sendVersion(sc);
+				Commands.sendNumberOfPlayers(sc);
 
-				controller.write(131, Network.VERSION);
-				controller.write(129, playerCount);
-				for (int n = 0; n < playerCount; n++) {
-					controller.write(130, controller.indices[n], colors[n].getRGB());
-					controller.write(0, controller.indices[n], Float.floatToIntBits(positions[n][0]), Float.floatToIntBits(positions[n][1]));
+				for (Character c : characters) {
+					Commands.colorPlayer(sc, c);
+					Commands.positionPlayer(sc, c);
 				}
-				for (int x = 0; x < map.length; x++) {
-					for (int y = 0; y < map[x].length; y++) {
+
+				for (int x = 0; x < Game.map.length; x++) {
+					for (int y = 0; y < Game.map[x].length; y++) {
 						if (map[x][y] == null) {
-							controller.write(1, x, y);
+							Commands.clearTile(sc, x, y);
 						} else {
-							controller.write(6, map[x][y].getArmor(), map[x][y].getColor().getRGB(), x, y);
+							Commands.setSimpleTile(sc, x, y);
 						}
 					}
 				}
-
-				controllers.add(controller);
-				characters.add(character);
-			} catch (IOException e) {
-				i--;
-			}
+			} catch (IOException e) {}
 		}
 
 		for (Controller c : controllers) {
@@ -86,6 +119,14 @@ public class Game {
 
 	public static Tile[][] getMap() {
 		return map;
+	}
+	
+	public static List<Bomb> getBombs() {
+		return bombs;
+	}
+
+	public static int getPlayerCount() {
+		return playerCount;
 	}
 
 	static Bomb placeBomb(int x, int y, Character owner) {
@@ -178,13 +219,7 @@ public class Game {
 			ServerController controller = (ServerController) c;
 			try {
 				for (int[] command : commands) {
-					if (command[0] == 7) {
-						int[] nc = command.clone();
-						nc[1] = controller.indices[command[1]];
-						controller.write(nc);
-					} else {
-						controller.write(command);
-					}
+					controller.write(command);
 				}
 			} catch (IOException e) {
 				controller.character.kill();

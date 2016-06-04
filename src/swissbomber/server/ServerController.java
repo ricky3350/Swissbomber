@@ -53,6 +53,10 @@ public class ServerController implements Controller {
 		return indices[Game.getCharacters().indexOf(player)];
 	}
 	
+	public int indexOf(int index) {
+		return indices[index];
+	}
+	
 	@Override
 	public void step(long deltaTime) {
 		if (!character.isAlive()) return;
@@ -67,8 +71,8 @@ public class ServerController implements Controller {
 					ServerController controller = (ServerController) c;
 
 					try {
-						controller.write(7, controller.indices[this.index], bomb.power, bomb.piercing ? 1 : 0, bomb.remote ? 1 : 0, (int) (character.getX()), (int) (character.getY()));
-						controller.write(8, controller.indices[this.index], this.character.getCurrentBombs());
+						Commands.placeBomb(controller, bomb);
+						Commands.setRemainingBombs(controller, this.character);
 					} catch (IOException e) {
 						controller.character.kill();
 					}
@@ -109,7 +113,7 @@ public class ServerController implements Controller {
 				ServerController controller = (ServerController) c;
 
 				try {
-					controller.write(0, controller.indices[this.index], Float.floatToIntBits(character.getX()), Float.floatToIntBits(character.getY()));
+					Commands.positionPlayer(controller, character);
 				} catch (IOException e) {}
 			}
 		}

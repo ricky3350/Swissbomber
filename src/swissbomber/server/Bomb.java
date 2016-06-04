@@ -1,7 +1,5 @@
 package swissbomber.server;
 
-import java.awt.Color;
-
 import swissbomber.Powerup;
 import swissbomber.Tile;
 
@@ -12,7 +10,7 @@ public class Bomb {
 	public final int id;
 	private static int LAST_ID = 0;
 	
-	int x, y; // TODO
+	float x, y; // TODO
 	Character owner;
 	long timer;
 	boolean hasExploded = false;
@@ -37,19 +35,12 @@ public class Bomb {
 		timer = TIMER_START;
 	}
 
-	public int getX() {
+	public float getX() {
 		return x;
 	}
 
-	public int getY() {
+	public float getY() {
 		return y;
-	}
-
-	public Color getColor() {
-		if (!hasExploded)
-			return Color.BLACK;
-		else
-			return new Color((int) Math.round((1 - timer / -1000000000d) * 200), 0, 0, (int) Math.round((1 - timer / -1000000000d) * 255));
 	}
 
 	public boolean hasExploded() {
@@ -75,6 +66,9 @@ public class Bomb {
 //				}
 //			}
 
+			int x = Math.round(this.x);
+			int y = Math.round(this.y);
+			
 			explosionSize[0] = y;
 			explosionSize[1] = y;
 			explosionSize[2] = x;
@@ -119,10 +113,6 @@ public class Bomb {
 
 		Tile tile = Game.getMap()[x][y];
 		if (tile != null) {
-//			if (tile instanceof Bomb) {
-//				((Bomb) tile).explode();
-//				Game.getMap()[x][y] = null;
-//			} else 
 			if (tile instanceof Powerup) {
 				Game.getMap()[x][y] = null;
 			} else {

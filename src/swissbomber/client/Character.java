@@ -4,8 +4,6 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 
-import swissbomber.Powerup;
-
 public class Character {
 
 	private boolean alive = true;
@@ -182,10 +180,6 @@ public class Character {
 		float dx = distanceX - radius;
 		float dy = distanceY - radius;
 		return dx * dx + dy * dy <= this.radius * this.radius;
-	}
-
-	public boolean collidesWithPowerup(int x, int y, Powerup powerup) {
-		return Math.hypot(positionX - (x + 0.5f), positionY - (y + 0.5f)) <= radius + powerup.radius;
 	}
 
 	public boolean collidesWithBomb(Bomb bomb) {

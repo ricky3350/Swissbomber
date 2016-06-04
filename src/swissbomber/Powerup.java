@@ -23,7 +23,7 @@ public class Powerup extends Tile {
 			new Powerup(1, Color.CYAN, 3, "remote"),
 			new Powerup(1, Color.ORANGE, 3, "kick"),
 			new Powerup(1, Color.BLACK, 10, "nextDangerous"),
-			new Powerup(1, Color.ORANGE, 10, "nextPowerful")
+			new Powerup(1, Color.MAGENTA, 10, "nextPowerful")
 	};
 	public final int rarity;
 	public final String effect;
