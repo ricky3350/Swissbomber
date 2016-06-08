@@ -9,7 +9,7 @@ public class Bomb {
 
 	public final int id;
 	private static int LAST_ID = 0;
-	
+
 	float x, y; // TODO
 	Character owner;
 	long timer;
@@ -23,7 +23,7 @@ public class Bomb {
 
 	Bomb(int x, int y, Character owner, int power, boolean piercing, boolean remote) {
 		this.id = LAST_ID++;
-		
+
 		this.x = x;
 		this.y = y;
 		this.owner = owner;
@@ -56,19 +56,9 @@ public class Bomb {
 		if (timer <= -1000000000) {
 			return true;
 		} else if (timer <= 0 && !hasExploded) {
-//			Tile[][] map = Game.getMap();
-//
-//			for (int x = 0; x < map.length; x++) {
-//				for (int y = 0; y < map[x].length; y++) {
-//					if (map[x][y] == this) {
-//						map[x][y] = null;
-//					}
-//				}
-//			}
+			int x = Math.round(this.x - 0.5F);
+			int y = Math.round(this.y - 0.5F);
 
-			int x = Math.round(this.x);
-			int y = Math.round(this.y);
-			
 			explosionSize[0] = y;
 			explosionSize[1] = y;
 			explosionSize[2] = x;
@@ -95,6 +85,25 @@ public class Bomb {
 				}
 			}
 
+			float rect1X = (explosionSize[2] + explosionSize[3] + 1) * 0.5F;
+			float rect1Y = y + 0.5F;
+			float width1 = explosionSize[3] + explosionSize[2];
+			float rect2X = x + 0.5F;
+			float rect2Y = (explosionSize[0] + explosionSize[1] + 1) * 0.5F;
+			float height2 = explosionSize[3] + explosionSize[2];
+
+			for (Character character : Game.getCharacters()) {
+				if (Game.collides(rect1X, rect1Y, width1, 1, character.getX(), character.getY(), character.getRadius()) || Game.collides(rect2X, rect2Y, 1, height2, character.getX(), character.getY(), character.getRadius())) {
+					Log.print(owner.getColor().getRGB() + " killed " + character.getColor().getRGB());
+					Log.print("Victim (" + character.getX() + ", " + character.getY() + ")");
+					character.kill();
+				}
+			}
+
+			for (Bomb bomb : Game.getBombs()) {
+				if (Game.collides(rect1X, rect1Y, width1, 1, bomb.getX(), bomb.getY(), 0.5F) || Game.collides(rect2X, rect2Y, 1, height2, bomb.getX(), bomb.getY(), 0.5F)) bomb.explode();
+			}
+
 			owner.addBomb();
 			hasExploded = true;
 		}
@@ -102,15 +111,6 @@ public class Bomb {
 	}
 
 	private int destroy(int x, int y) {
-		for (Character character : Game.getCharacters()) {
-			if (character.collidesWithTile(x, y)) {
-				Log.print(owner.getColor().getRGB() + " killed " + character.getColor().getRGB());
-				Log.print("Explosion Tile (" + x + ", " + y + ")");
-				Log.print("Victim (" + character.getX() + ", " + character.getY() + ")");
-				character.kill();
-			}
-		}
-
 		Tile tile = Game.getMap()[x][y];
 		if (tile != null) {
 			if (tile instanceof Powerup) {

@@ -186,39 +186,15 @@ public class Character {
 	}
 
 	public boolean collidesWithTile(int x, int y) {
-		return collides(x + 0.5F, y + 0.5F, 1, 1);
+		return Game.collides(x + 0.5F, y + 0.5F, 1, 1, this.positionX, this.positionY, this.radius);
 	}
 
 	public boolean collidesWithBomb(Bomb bomb) {
-		return collides(bomb.x, bomb.y, 1, 1);
+		return Game.collides(bomb.x, bomb.y, 1, 1, this.positionX, this.positionY, this.radius);
 	}
 
 	public boolean collidesWithPowerup(int x, int y, Powerup powerup) {
 		return Math.hypot(positionX - (x + 0.5f), positionY - (y + 0.5f)) <= radius + powerup.radius;
-	}
-
-	/**
-	 * <ul>
-	 * <b><i>collides</i></b><br>
-	 * <br>
-	 * <code>&nbsp;private boolean collides(float x, float y, float width, float height)</code><br>
-	 * <br>
-	 * Tests whether or not this character collides with a rectangle centered at the given coordinates with the given dimensions<br>
-	 * <i>Note</i>: the character is assumed to be a square, <i>not a circle</i>.
-	 * @param x - The x coordinate of the center of the rectangle
-	 * @param y - The y coordinate of the center of the rectangle
-	 * @param width - The width of the rectangle
-	 * @param height - The height of the rectangle
-	 * @return Whether or not this <code>Character</code> collides with the rectangle
-	 *         </ul>
-	 */
-	public boolean collides(float x, float y, float width, float height) {
-		if (width <= 0 || height <= 0) return false; 
-		
-		float dx = Math.abs(positionX - x);
-		float dy = Math.abs(positionY - y);
-
-		return dx < width / 2 + radius && dy < height / 2 + radius;
 	}
 
 	private ArrayDeque<Powerup> nextPowerups = new ArrayDeque<>();

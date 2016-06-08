@@ -129,6 +129,32 @@ public class Game {
 		return playerCount;
 	}
 
+	/**
+	 * <ul>
+	 * <b><i>collides</i></b><br>
+	 * <br>
+	 * <code>&nbsp;public static boolean collides(float rectX, float rectY, float width, float height, float squareX, float squareY, float radius)</code><br>
+	 * <br>
+	 * Tests whether or not a rectangle centered at <code>rectX</code> and <code>rectY</code> with the given <code>width</code> and <code>height</code> intersects a square with the given <code>radius</code> centered at <code>squareX</code> and <code>squareY</code>
+	 * @param rectX - The x coordinate of the center of the rectangle
+	 * @param rectY - The y coordinate of the center of the rectangle
+	 * @param width - The width of the rectangle
+	 * @param height - The height of the rectangle
+	 * @param squareX - The x coordinate of the center of the square
+	 * @param squareY - The y coordinate of the center of the square
+	 * @param radius - The minimum radius of the square (length of a side / 2) 
+	 * @return <code>true</code> if the rectange intersects the square, <code>false</code> otherwise.
+	 * </ul>
+	 */
+	public static boolean collides(float rectX, float rectY, float width, float height, float squareX, float squareY, float radius) {
+		if (width <= 0 || height <= 0) return false; 
+		
+		float dx = Math.abs(squareX - rectX);
+		float dy = Math.abs(squareY - rectY);
+
+		return width / 2 + radius - dx > 0.001 && height / 2 + radius - dy > 0.001;
+	}
+	
 	static Bomb placeBomb(int x, int y, Character owner) {
 //		if (map[x][y] == null) {
 //			map[x][y] = new Bomb(x, y, 1, Color.BLACK, owner, owner.getBombPower(), owner.hasPiercingBombs(), owner.hasRemoteBombs());
