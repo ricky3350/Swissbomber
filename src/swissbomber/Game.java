@@ -18,22 +18,34 @@ public class Game extends JPanel {
 	
 	private static final long serialVersionUID = -7101890057819507949L;
 	
-	List<Character> characters = new ArrayList<>();
-	List<Controller> controllers = new ArrayList<>();
-	List<Bomb> bombs = new ArrayList<>();
-	private Tile[][] map;
+	public static Game game;
 	
+	private List<Character> characters = new ArrayList<>();
+	private List<Controller> controllers = new ArrayList<>();
+	private List<Bomb> bombs = new ArrayList<>();
+	private Tile[][] map;
+	private long timer = 60000000000l * 2;
+	private int deathProgress = 0;
+
 	private int currentFPS = 0;
 	private int targetFPS = 60;
 	private int tileLength = 50;
 	
+	/**
+	 * Creates the game and sets up the environment for the characters using a given map.
+	 * 
+	 * @param map			the map which the game will use
+	 * @param playerCount	how many players will be in the game
+	 * @see Tile
+	 */
 	Game(Tile[][] map, int playerCount) {	
+		game = this;
 		this.map = map;
 		int[][] controls = {
 				{KeyEvent.VK_W, KeyEvent.VK_S, KeyEvent.VK_A, KeyEvent.VK_D, KeyEvent.VK_SPACE, KeyEvent.VK_SHIFT},
-				{KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_END, KeyEvent.VK_CONTEXT_MENU},
+				{KeyEvent.VK_UP, KeyEvent.VK_DOWN, KeyEvent.VK_LEFT, KeyEvent.VK_RIGHT, KeyEvent.VK_NUMPAD0, KeyEvent.VK_ENTER},
 				{KeyEvent.VK_I, KeyEvent.VK_K, KeyEvent.VK_J, KeyEvent.VK_L, KeyEvent.VK_B, KeyEvent.VK_SLASH},
-				{}
+				{KeyEvent.VK_1, KeyEvent.VK_2, KeyEvent.VK_3, KeyEvent.VK_4, KeyEvent.VK_5, KeyEvent.VK_6}
 		};
 		Color[] colors = {Color.BLUE, Color.GREEN, Color.ORANGE, Color.MAGENTA};
 		float[][] positions = { {1.5f, 1.5f}, {13.5f, 11.5f}, {13.5f, 1.5f}, {1.5f, 11.5f} };
@@ -60,6 +72,10 @@ public class Game extends JPanel {
 		return controllers;
 	}
 	
+	public List<Bomb> getBombs() {
+		return bombs;
+	}
+	
 	public Tile[][] getMap() {
 		return map;
 	}
@@ -76,9 +92,19 @@ public class Game extends JPanel {
 		return tileLength;
 	}
 	
+	/**
+	 * Places a bomb at given coordinates from a given owner. Also manages temporary uncollidable tiles and powerup effects.
+	 * 
+	 * @param x		the x coordinate of the grid in which the bomb has been placed
+	 * @param y		the y coordinate of the grid in which the bomb has been placed
+	 * @param owner	the character which has placed the bomb
+	 * @return		whether or not the bomb has been successfully placed
+	 * @see Bomb
+	 * @see Character
+	 */
 	boolean placeBomb(int x, int y, Character owner) {
 		if (map[x][y] == null) {
-			map[x][y] = new Bomb(x, y, 1, Color.BLACK, owner, owner.getBombPower(), owner.hasPiercingBombs(), owner.hasRemoteBombs());
+			map[x][y] = new Bomb(x, y, 1, owner, owner.getBombPower(), owner.hasPiercingBombs(), owner.hasRemoteBombs(), owner.useDangerous(), owner.usePowerful());
 			bombs.add((Bomb) map[x][y]);
 			if (owner.hasRemoteBombs())
 				owner.addRemoteBomb((Bomb) map[x][y]);
@@ -95,9 +121,31 @@ public class Game extends JPanel {
 	public void paintComponent (Graphics g) {
 		Graphics2D gg = ((Graphics2D) g);
 		gg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+		gg.setFont(new Font("idk", gg.getFont().getStyle(), 30)); // TODO: Optimize fonts
 		
 		gg.setColor(Color.WHITE);
 		gg.fillRect(0, 0, map.length * tileLength, map[0].length * tileLength);
+		
+		for (Bomb bomb : bombs.toArray(new Bomb[bombs.size()])) {
+			if (bomb.hasExploded()) {
+				BufferedImage img = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_ARGB_PRE);
+				Graphics2D ig = img.createGraphics();
+				ig.setColor(new Color(bomb.getColor().getRGB() & 16777215)); // Remove alpha from color
+				ig.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC, bomb.getColor().getAlpha() / 255f));
+
+				ig.fillRect(bomb.getExplosionSize()[2] * tileLength, Math.round((bomb.getY() + 0.05f) * tileLength),
+						   (bomb.getExplosionSize()[3] - bomb.getExplosionSize()[2] + 1) * tileLength, Math.round(0.9f * tileLength));
+				ig.fillRect(Math.round((bomb.getX() + 0.05f) * tileLength), bomb.getExplosionSize()[1] * tileLength,
+						    Math.round(0.9f * tileLength), (bomb.getExplosionSize()[0] - bomb.getExplosionSize()[1] + 1) * tileLength);
+				
+				ig.dispose();
+				gg.drawImage(img, 0, 0, null);
+			} else if (bomb.isSliding()) {
+				gg.drawImage(bomb.getAnimation(), Math.round((bomb.getRealX() - 0.5f) * tileLength), Math.round((bomb.getRealY() - 0.5f) * tileLength), tileLength, tileLength, null);
+				gg.setColor(Color.WHITE);
+				if (bomb.isDangerous()) gg.drawString("D", (bomb.getRealX() - 0.25f) * tileLength, (bomb.getRealY() + 0.25f) * tileLength);
+			}
+		}
 		
 		for (int x = 0; x < map.length; x++) {
 			for (int y = 0; y < map[x].length; y++) {
@@ -105,15 +153,16 @@ public class Game extends JPanel {
 					gg.setColor(map[x][y].getColor());
 					if (map[x][y] instanceof Bomb) {
 						gg.drawImage(((Bomb) map[x][y]).getAnimation(), x * tileLength, y * tileLength, tileLength, tileLength, null);
-						//gg.fillOval(x * tileLength + Math.round(tileLength * 0.05f), y * tileLength + Math.round(tileLength * 0.05f), Math.round(tileLength * 0.9f), Math.round(tileLength * 0.9f));
+						gg.setColor(Color.WHITE);
+						if (((Bomb) map[x][y]).isDangerous()) gg.drawString("D", (x + 0.25f) * tileLength, (y + 0.75f) * tileLength);
 					} else if (map[x][y] instanceof Powerup) {
 						gg.fillOval(x * tileLength + Math.round(tileLength * (0.5f - ((Powerup)map[x][y]).RADIUS)), y * tileLength + Math.round(tileLength * (0.5f - ((Powerup)map[x][y]).RADIUS)), Math.round(((Powerup)map[x][y]).RADIUS * 2 * tileLength), Math.round(((Powerup)map[x][y]).RADIUS * 2 * tileLength));
 					} else {
 						if (map[x][y].getArmor() == 0) {
-							if (map[x][y].getColor() == null) {
+							if (map[x][y] == Tile.ASH) {
 								map[x][y] = null;
 								continue;
-							} else if (map[x][y].getColor() == Color.CYAN) {
+							} else if (map[x][y] == Tile.SURGE) {
 					    		int value = (int) (Math.random() * Powerup.getTotalRarity());
 					    		for (Powerup powerup : Powerup.POWERUPS) {
 					    			value -= powerup.RARITY;
@@ -133,24 +182,6 @@ public class Game extends JPanel {
 			}
 		}
 		
-		for (Bomb bomb : bombs.toArray(new Bomb[bombs.size()])) {
-			if (bomb.hasExploded()) {				
-				BufferedImage img = new BufferedImage(this.getWidth(), this.getHeight(), BufferedImage.TYPE_INT_ARGB_PRE);
-				Graphics2D ig = img.createGraphics();
-				//ig.setColor(new Color(bomb.getColor().getRGB() & 16777216)); // Remove alpha from color
-				ig.setColor(new Color(bomb.getColor().getRed(), bomb.getColor().getGreen(), bomb.getColor().getBlue()));
-				ig.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC, bomb.getColor().getAlpha() / 255f));
-
-				ig.fillRect(bomb.getExplosionSize()[2] * tileLength, Math.round((bomb.getY() + 0.05f) * tileLength),
-						   (bomb.getExplosionSize()[3] - bomb.getExplosionSize()[2] + 1) * tileLength, Math.round(0.9f * tileLength));
-				ig.fillRect(Math.round((bomb.getX() + 0.05f) * tileLength), bomb.getExplosionSize()[1] * tileLength,
-						    Math.round(0.9f * tileLength), (bomb.getExplosionSize()[0] - bomb.getExplosionSize()[1] + 1) * tileLength);
-				
-				ig.dispose();
-				gg.drawImage(img, 0, 0, null);
-			}
-		}
-		
 		for (Character character : characters) {
 			if (!character.isAlive()) continue;
 			gg.setColor(character.getColor());
@@ -158,8 +189,10 @@ public class Game extends JPanel {
 		}
 		
 		gg.setColor(Color.WHITE);
-		gg.setFont(new Font("idk", gg.getFont().getStyle(), 30));
 		gg.drawString(Integer.toString(currentFPS), 10, 30);
+		int minutesLeft = (int) (timer / 60000000000l);
+		int secondsLeft = (int) ((timer - minutesLeft * 60000000000l) / 1000000000l);
+		gg.drawString((minutesLeft > 0 ? minutesLeft + ":" + String.format("%02d", secondsLeft) : Integer.toString(secondsLeft)) , map[0].length * tileLength / 2 + 20, 30);
 		
 		gg.setColor(Color.LIGHT_GRAY);
 		gg.fillRect(map.length * tileLength, 0, 200, map[0].length * tileLength);
@@ -230,17 +263,66 @@ public class Game extends JPanel {
 			}
 		};
 	}
-			
+	
+	/**
+	 * Updates all objects in the game, including characters, bombs, and the death progress.
+	 * 
+	 * @param deltaTime the time passed since the last frame in nanoseconds
+	 */
 	private void update(long deltaTime) {
+		timer -= deltaTime;
+		
 		for (Controller controller : controllers) {
-			controller.step(this, deltaTime);
+			controller.step(deltaTime);
 		}
 		
 		for (int i = 0; i < bombs.size(); i++) {
-			if (bombs.get(i).step(this, deltaTime)) {
-				bombs.remove(bombs.get(i));
+			if (bombs.get(i).step(deltaTime)) {
+				bombs.remove(i);
 				i--;
 			}
+		}
+		
+		if (48750000000l - timer >= deathProgress * 250000000l && deathProgress < map.length * map[0].length) {
+			int x = 0, y = 0;
+			int width = map.length, height = map[0].length;
+			int direction = 0, lineDistance = 1;
+			int[][] directions = { {1, 0}, {0, 1}, {-1, 0}, {0, -1} };
+			boolean firstLine = true;
+			for (int n = deathProgress; n > 0;) {
+				x += directions[direction][0];
+				y += directions[direction][1];
+				lineDistance++;
+
+				if (lineDistance >= (direction == 0 || direction == 2 ? width : height)) {
+					if (firstLine) {
+						firstLine = false;
+						width++;
+					}
+					if (direction == 0 || direction == 2)
+						width--;
+					else
+						height--;
+					direction++;
+					if (direction == 4) direction = 0;
+					lineDistance = 1;
+				}
+				
+				n--;
+			}
+			
+			if (map[x][y] instanceof Bomb) ((Bomb) map[x][y]).explode();	
+			for (Character character : characters) {
+				if (character.collidesWithTile(x, y)) {
+					System.out.println("Death killed " + character.getColor().getRGB());
+					System.out.println("Death Tile (" + x + ", " + y + ")");
+					System.out.println("Victim (" + character.getX() + ", " + character.getY() + ")");
+					character.kill();
+				}
+			}
+			map[x][y] = Tile.DEATH;
+			
+			deathProgress++;
 		}
 		
 		repaint();
