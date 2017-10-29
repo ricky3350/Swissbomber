@@ -1,6 +1,7 @@
 package swissbomber;
 
 import java.awt.Color;
+import java.io.IOException;
 
 public class Main {
 	
@@ -27,7 +28,11 @@ public class Main {
 		};
 
 		Bomb.loadAnimations();
-		new Window(new Game(grid, 2));
+		try {
+			new Window(new Game(grid, 2));
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 }
